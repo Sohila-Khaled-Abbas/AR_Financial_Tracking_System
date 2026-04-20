@@ -2,15 +2,16 @@
 
 # 📊 AR Financial Tracking System
 
-<img src="https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white" alt="Status"/>
-<img src="https://img.shields.io/badge/Domain-Data%20Engineering-blueviolet?style=for-the-badge&logo=databricks&logoColor=white" alt="Domain"/>
-<img src="https://img.shields.io/badge/Source-SAP-0FAAFF?style=for-the-badge&logo=sap&logoColor=white" alt="SAP"/>
-<img src="https://img.shields.io/badge/ETL-Power%20Query-F2A900?style=for-the-badge&logo=microsoftexcel&logoColor=white" alt="Power Query"/>
-<img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License"/>
+<img src="https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge" alt="Status"/>
+<img src="https://img.shields.io/badge/Records-950K%2B-blueviolet?style=for-the-badge&logo=databricks&logoColor=white" alt="Records"/>
+<img src="https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
+<img src="https://img.shields.io/badge/Pandas%20%7C%20NumPy-Engine-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas"/>
+<img src="https://img.shields.io/badge/Power%20Query-ETL-F2A900?style=for-the-badge&logo=microsoftexcel&logoColor=white" alt="Power Query"/>
+<img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License"/>
 
 <br/>
 
-> **A robust, end-to-end Accounts Receivable financial tracking pipeline** — from raw SAP extracts through ETL transformation to interactive dashboards — enabling real-time insights into cash flow, aging buckets, and collection performance.
+> **An end-to-end Accounts Receivable data engineering pipeline** — synthetic data generation at scale (950K+ records), Power Query ETL transformation, Star Schema modeling, and collection follow-up simulation — built for real-world AR analytics scenarios.
 
 <br/>
 
@@ -21,12 +22,14 @@
 ## 📋 Table of Contents
 
 - [🎯 Project Overview](#-project-overview)
-- [🏗️ Architecture](#%EF%B8%8F-architecture)
+- [🏗️ Architecture & Data Flow](#%EF%B8%8F-architecture--data-flow)
 - [📁 Repository Structure](#-repository-structure)
-- [⚙️ Tech Stack](#%EF%B8%8F-tech-stack)
+- [🗄️ Data Model — Star Schema](#%EF%B8%8F-data-model--star-schema)
+- [📓 Notebooks](#-notebooks)
+- [⚙️ ETL Engine](#%EF%B8%8F-etl-engine)
+- [⚡ Performance](#-performance)
 - [🚀 Getting Started](#-getting-started)
-- [📊 Data Pipeline](#-data-pipeline)
-- [📈 Dashboards & KPIs](#-dashboards--kpis)
+- [📈 Key Metrics & KPIs](#-key-metrics--kpis)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
 
@@ -34,53 +37,62 @@
 
 ## 🎯 Project Overview
 
-The **AR Financial Tracking System** is a data engineering project designed to automate and streamline the end-to-end monitoring of Accounts Receivable operations. It ingests raw financial data extracted from **SAP ERP**, applies structured ETL transformations via **Power Query**, and delivers actionable intelligence through business dashboards.
+The **AR Financial Tracking System** is a data engineering project that simulates and tracks an enterprise Accounts Receivable lifecycle — from synthetic invoice generation through ETL transformation to collection activity simulation.
 
-### 🔑 Key Objectives
+The pipeline generates **950,000 invoices** across **10,000 customers** with realistic financial distributions, models them in a **Star Schema**, transforms them through **Power Query M-language**, and simulates **collection team follow-up activity** with human-like comments and promised payment dates.
 
-| Objective | Description |
-|-----------|-------------|
-| 📥 **Data Ingestion** | Automate extraction of AR data from SAP into structured raw datasets |
-| 🔄 **ETL Processing** | Clean, transform, and enrich data using Power Query M-language pipelines |
-| 📊 **Reporting** | Build interactive dashboards covering aging, DSO, and collection KPIs |
-| 🗂️ **Governance** | Maintain mapping tables for consistent business entity classification |
+### 🔑 What This System Does
 
-### 💡 Business Value
-
-- ⏱️ Reduce manual reporting effort from **hours to minutes**
-- 🎯 Track outstanding invoices with **aging bucket analysis** (0–30, 31–60, 61–90, 90+ days)
-- 💰 Monitor **Days Sales Outstanding (DSO)** and payment trends
-- 🚨 Proactively flag **overdue accounts** for collections follow-up
+| Layer | What Happens |
+|-------|-------------|
+| 🏭 **Data Generation** | Vectorized synthetic dataset creation — 950K invoices, 10K customers, ~399K bank documents |
+| 🔄 **ETL Processing** | Power Query cleans, joins, and enriches raw CSVs into an analytical data model |
+| 🎭 **Activity Simulation** | Realistic AR collection follow-up notes, collector assignments, and promise-to-pay dates |
+| 📊 **Star Schema** | Fact + Dimension tables structured for BI consumption |
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Data Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        DATA FLOW ARCHITECTURE                       │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       END-TO-END PIPELINE                                │
+└──────────────────────────────────────────────────────────────────────────┘
 
-  ┌───────────┐     Export      ┌──────────────────┐
-  │  SAP ERP  │ ─────────────► │  Raw SAP Extracts │  (CSV / XLSX)
-  └───────────┘                └────────┬─────────┘
-                                        │
-                               ┌────────▼─────────┐
-                               │  Mapping Tables   │  (Customer / GL Code)
-                               └────────┬─────────┘
-                                        │
-                               ┌────────▼──────────┐
-                               │  Power Query ETL   │  (Clean · Join · Transform)
-                               └────────┬──────────┘
-                                        │
-                               ┌────────▼──────────┐
-                               │   Analytical       │
-                               │   Notebooks        │  (EDA · Validation)
-                               └────────┬──────────┘
-                                        │
-                               ┌────────▼──────────┐
-                               │   Dashboards       │  (KPIs · Charts · Trends)
-                               └───────────────────┘
+  ┌──────────────────────────┐
+  │   data_generator.ipynb   │  NumPy · Pandas · Faker
+  │   (950K record engine)   │
+  └────────────┬─────────────┘
+               │  generates 3 CSV files
+               ▼
+  ┌────────────────────────────────────────────────┐
+  │                 data/raw/                      │
+  │  ┌─────────────────────────────────────────┐   │
+  │  │  AR_Invoices_950K.csv        ~58 MB     │   │  ← Fact Table
+  │  │  Customers_Master.csv        ~295 KB    │   │  ← Dimension Table
+  │  │  Bank_Documents_Tracking.csv ~24 MB     │   │  ← Tracking Table
+  │  └─────────────────────────────────────────┘   │
+  └────────────────────┬───────────────────────────┘
+                       │
+               ┌───────▼────────┐
+               │  etl/          │  Power Query M-Language
+               │  Data_Model_   │  Clean · Join · Transform
+               │  Engine.xlsx   │  Aging · DSO · Status flags
+               └───────┬────────┘
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+  ┌───────▼────────┐      ┌─────────▼──────────────┐
+  │  Dashboards    │      │  user_comments_         │
+  │  (BI Layer)    │      │  generator.ipynb        │
+  │                │      │  5K sampled follow-ups  │
+  └────────────────┘      └────────────────────────-┘
+                                     │
+                            ┌────────▼────────┐
+                            │  data/output/   │
+                            │ User_Comments   │
+                            │    .xlsx        │
+                            └─────────────────┘
 ```
 
 ---
@@ -90,45 +102,242 @@ The **AR Financial Tracking System** is a data engineering project designed to a
 ```
 AR_Financial_Tracking_System/
 │
-├── 📓 notebooks/                    # Jupyter notebooks for EDA & analysis
-│   └── (exploratory analysis, validation scripts)
+├── 📓 notebooks/
+│   ├── data_generator.ipynb          # Stage 1: Synthetic data pipeline (950K records)
+│   ├── user_comments_generator.ipynb # Stage 2: AR follow-up activity simulation
+│   └── paths.py                      # Shared path configuration (OS-agnostic)
 │
-├── 📂 data/                         # All data assets
-│   ├── raw/                         # Unmodified SAP ERP exports
-│   │   └── (CSV/XLSX extracts from SAP modules)
-│   └── mappings/                    # Reference & dimension tables
-│       └── (customer master, GL codes, cost centers)
+├── 📂 data/
+│   ├── raw/                          # Generated CSVs (git-ignored — large files)
+│   │   ├── AR_Invoices_950K.csv      # Fact table · 950,000 rows · ~58 MB
+│   │   ├── Customers_Master.csv      # Customer dimension · 10,000 rows · ~295 KB
+│   │   └── Bank_Documents_Tracking.csv # Bank submission tracking · ~399K rows · ~24 MB
+│   ├── mappings/                     # Reference & dimension lookup tables
+│   └── output/                       # Notebook exports (auto-created)
+│       └── User_Comments.xlsx        # 5,000 simulated follow-up records
 │
-├── ⚙️  etl/                          # Power Query M-language ETL scripts
-│   └── (transformation queries, connection configs)
+├── ⚙️  etl/
+│   └── Data_Model_Engine.xlsx        # Power Query ETL workbook (~47 MB)
 │
-├── 📊 dashboards/                   # Dashboard files & templates
-│   └── (Excel / Power BI / report files)
+├── 📊 dashboards/                    # Dashboard files (coming soon)
 │
-├── 📄 README.md                     # Project documentation (this file)
-├── 📄 .gitignore                    # Git ignore rules
-└── 📄 LICENSE                       # MIT License
+├── 📄 README.md
+├── 📄 .gitignore
+└── 📄 LICENSE
 ```
 
 > [!NOTE]
-> Folder names follow a clean, lowercase convention for cross-platform compatibility and professional repository standards.
+> `data/raw/` files are excluded from Git via `.gitignore` (files exceed 50MB). Run `data_generator.ipynb` to regenerate them locally in under 15 seconds.
 
 ---
 
-## ⚙️ Tech Stack
+## 🗄️ Data Model — Star Schema
 
-<div align="center">
+```
+                    ┌─────────────────────────┐
+                    │   dim_Customers          │
+                    │─────────────────────────│
+                    │  CustomerID  (PK)        │
+                    │  CustomerName            │
+                    │  PaymentTerms            │
+                    │  (30 / 60 / 90 / 120 d) │
+                    └────────────┬────────────┘
+                                 │ 1
+                                 │
+                                 │ N
+          ┌──────────────────────▼───────────────────────┐
+          │              fact_AR_Invoices                 │
+          │──────────────────────────────────────────────│
+          │  InvoiceID    (PK)   INV-0000001 … INV-0950000│
+          │  CustomerID   (FK)                            │
+          │  PostingDate         2024-04-20 → 2026-04-20  │
+          │  Amount              $100 – $150,000          │
+          │  Status              Open · Partial · Cleared │
+          └───────────────┬──────────────────────────────┘
+                          │ 1
+                          │
+                          │ N (70% of Open/Partial)
+          ┌───────────────▼──────────────────────────────┐
+          │          fact_Bank_Documents                  │
+          │──────────────────────────────────────────────│
+          │  DocID          (PK)   DOC-000001 …           │
+          │  InvoiceID      (FK)                          │
+          │  BankSubmissionDate                           │
+          │  DocStatus      Under Review · Accepted ·     │
+          │                 Rejected (60/30/10%)          │
+          └──────────────────────────────────────────────┘
+```
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| 🏢 **Source System** | SAP ERP (FI/AR Module) | Source of truth for financial transactions |
-| 🔄 **ETL Engine** | Microsoft Power Query (M Language) | Data transformation and loading |
-| 📓 **Analysis** | Python · Jupyter Notebooks | Exploratory data analysis & validation |
-| 📊 **Visualization** | Excel / Power BI | Dashboards and reporting |
-| 🗄️ **Data Format** | CSV · XLSX · Flat Files | Lightweight, portable data storage |
-| 🔧 **Version Control** | Git · GitHub | Source code and artifact management |
+### Schema Statistics
 
-</div>
+| Table | Rows | Size | Role |
+|-------|------|------|------|
+| `fact_AR_Invoices` | 950,000 | ~58 MB | Core fact table |
+| `dim_Customers` | 10,000 | ~295 KB | Customer dimension |
+| `fact_Bank_Documents` | ~399,000 | ~24 MB | Bank tracking fact |
+| `User_Comments` (output) | 5,000 | — | Follow-up simulation |
+
+### Invoice Status Distribution
+
+| Status | Probability | Description |
+|--------|-------------|-------------|
+| `Open` | 40% | Unpaid, awaiting collection |
+| `Cleared` | 40% | Fully paid and settled |
+| `Partial` | 20% | Partially paid, balance remaining |
+
+---
+
+## 📓 Notebooks
+
+### 1️⃣ `data_generator.ipynb` — Synthetic Data Pipeline
+
+Generates the entire dataset using **high-performance vectorized operations**.
+
+**Pipeline steps:**
+
+```
+Install deps (pandas · numpy · faker)
+        │
+        ▼
+[1] Environment Setup
+    └─ Import libraries, start timer, init Faker
+        │
+        ▼
+[2] Dimension Table — Customers (10,000 records)
+    └─ Faker-generated company names
+    └─ Random payment terms: 30 / 60 / 90 / 120 days
+        │
+        ▼
+[3] Fact Table — AR Invoices (950,000 records)  ← NumPy vectorized
+    └─ Invoice IDs: INV-0000001 to INV-0950000
+    └─ Random posting dates over 730-day window
+    └─ Invoice amounts: $100 – $150,000 (uniform)
+    └─ Status: Open(40%) · Partial(20%) · Cleared(40%)
+        │
+        ▼
+[4] Bank Documents Tracking (~399K records)
+    └─ 70% of Open/Partial invoices submitted to bank
+    └─ DocStatus: Under Review(60%) · Accepted(30%) · Rejected(10%)
+        │
+        ▼
+[5] Export to CSV → data/raw/
+    └─ AR_Invoices_950K.csv
+    └─ Customers_Master.csv
+    └─ Bank_Documents_Tracking.csv
+        │
+        ▼
+[6] Data Quality Assurance (DQA)
+    └─ Record count validation
+    └─ Referential integrity check (0 orphan invoices)
+    └─ Statistical summary (describe)
+```
+
+**DQA Results (last run):**
+
+| Check | Result |
+|-------|--------|
+| Invoices Count | ✅ 950,000 |
+| Customers Count | ✅ 10,000 |
+| Bank Documents | ✅ ~399,219 |
+| Referential Integrity Issues | ✅ 0 |
+| Execution Time | ✅ ~10.76 seconds |
+
+---
+
+### 2️⃣ `user_comments_generator.ipynb` — Collection Activity Simulation
+
+Simulates realistic **AR collection team activity** by generating follow-up notes for open/partial invoices.
+
+**Pipeline steps:**
+
+```
+[1] Load Data
+    └─ Reads AR_Invoices_950K.csv via paths.py (OS-agnostic)
+    └─ Filters for Status ∈ {Open, Partial}
+        │
+        ▼
+[2] Sampling
+    └─ Randomly samples 5,000 invoices
+    └─ Simulates realistic team workload
+        │
+        ▼
+[3] Synthetic Comment Generation
+    └─ Follow-up templates (4 types)
+    └─ Promise-to-pay dates (1–14 days ahead)
+    └─ Collector assignment (Ahmed · Sara · Omar · Nour)
+        │
+        ▼
+[4] Export → data/output/User_Comments.xlsx
+```
+
+**Output schema:**
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| `InvoiceID` | Linked invoice | `INV-0123456` |
+| `FollowUpNote` | Collector's comment | `"Customer promised to pay next Thursday"` |
+| `PromisedDate` | Expected payment date | `2026-04-27` |
+| `CollectorName` | Team member assigned | `Sara` |
+
+**Follow-up note templates:**
+
+```
+• "Customer promised to pay next Thursday"
+• "Waiting for manager approval"
+• "Dispute over quantity, reviewing with sales"
+• "Payment initiated, waiting for bank clearance"
+```
+
+---
+
+### 🔧 `paths.py` — Shared Path Configuration
+
+Eliminates hardcoded Windows backslash paths across all notebooks. Import once, use everywhere.
+
+```python
+from paths import RAW_DATA_DIR, OUTPUT_DIR, MAPPINGS_DIR
+
+# Example usage
+file_path = RAW_DATA_DIR / "AR_Invoices_950K.csv"
+output    = OUTPUT_DIR   / "User_Comments.xlsx"
+```
+
+---
+
+## ⚙️ ETL Engine
+
+**File:** `etl/Data_Model_Engine.xlsx` (~47 MB)
+
+The Power Query ETL workbook connects to the raw CSVs and applies the full transformation pipeline:
+
+| Step | Operation |
+|------|-----------|
+| 1️⃣ | Load all three raw CSV files |
+| 2️⃣ | Clean data types (dates, decimals, IDs) |
+| 3️⃣ | Join `fact_AR_Invoices` ↔ `dim_Customers` |
+| 4️⃣ | Calculate **aging buckets** (0–30 / 31–60 / 61–90 / 90+ days) |
+| 5️⃣ | Compute **Days Outstanding** per invoice |
+| 6️⃣ | Flag overdue invoices for collections |
+| 7️⃣ | Join bank document status |
+| 8️⃣ | Output analytical model for dashboard consumption |
+
+> [!TIP]
+> To refresh: open `Data_Model_Engine.xlsx` → **Data tab** → **Refresh All**. Ensure the raw CSVs are present in `data/raw/` first.
+
+---
+
+## ⚡ Performance
+
+The data generation pipeline is built for **high throughput** using vectorized NumPy operations instead of row-by-row loops:
+
+| Technique | Benefit |
+|-----------|---------|
+| `np.random.choice` / `np.random.uniform` | Generates millions of values in milliseconds |
+| `pd.to_timedelta` vectorized date arithmetic | No Python-level date loops |
+| Faker used only for small dimension tables | Avoids slow iteration on large volumes |
+| Single-pass DataFrame construction | Minimizes memory allocations |
+
+**Benchmark:** 950,000 invoices + 10,000 customers + ~399,000 bank docs generated and exported in **~10.76 seconds** on a standard laptop.
 
 ---
 
@@ -136,133 +345,103 @@ AR_Financial_Tracking_System/
 
 ### Prerequisites
 
-Ensure you have the following installed:
-
 ```bash
-# Python 3.8+
-python --version
-
-# Jupyter (for notebooks)
-pip install jupyter pandas openpyxl xlrd
-
-# Git
-git --version
+python --version      # 3.8+ required (tested on 3.13.1)
+pip install pandas numpy faker openpyxl
 ```
 
-### Clone the Repository
+### Step 1 — Clone
 
 ```bash
-git clone https://github.com/<your-username>/AR_Financial_Tracking_System.git
+git clone https://github.com/Sohila-Khaled-Abbas/AR_Financial_Tracking_System.git
 cd AR_Financial_Tracking_System
 ```
 
-### Repository Layout After Clone
+### Step 2 — Generate the Raw Data
 
+Open and run **all cells** in `notebooks/data_generator.ipynb`.
+
+This creates the three CSV files in `data/raw/`:
 ```
-AR_Financial_Tracking_System/
-├── notebooks/
-├── data/
-│   ├── raw/
-│   └── mappings/
-├── etl/
-└── dashboards/
+data/raw/AR_Invoices_950K.csv          (~58 MB)
+data/raw/Customers_Master.csv          (~295 KB)
+data/raw/Bank_Documents_Tracking.csv   (~24 MB)
 ```
+
+### Step 3 — Run the ETL
+
+Open `etl/Data_Model_Engine.xlsx` and click **Data → Refresh All**.
+
+### Step 4 — Simulate Collection Activity
+
+Run `notebooks/user_comments_generator.ipynb`.
+
+Output: `data/output/User_Comments.xlsx`
+
+### Step 5 — Explore Dashboards
+
+Open files in the `dashboards/` folder (coming soon).
 
 > [!IMPORTANT]
-> Raw data files (SAP extracts) are **excluded from version control** via `.gitignore` to protect sensitive financial information. Place your exported files inside `data/raw/` locally.
+> `data/raw/` is in `.gitignore` — raw CSVs are never committed. Always regenerate locally using `data_generator.ipynb`.
 
 ---
 
-## 📊 Data Pipeline
+## 📈 Key Metrics & KPIs
 
-### Step 1 — SAP Data Extraction
-
-Export the following from SAP using standard transaction codes:
-
-| SAP T-Code | Description | Output |
-|------------|-------------|--------|
-| `FBL5N` | Customer Line Items | Open/cleared AR items |
-| `FD10N` | Customer Balance | Account balances |
-| `F.31` | Credit Management | Credit exposure report |
-| `S_ALR_87012178` | AR Aging Analysis | Aging bucket breakdown |
-
-Save exports to: `data/raw/`
-
-### Step 2 — Power Query ETL
-
-Open the ETL workbook in `etl/` and refresh all queries. The pipeline:
+### Aging Bucket Analysis
 
 ```
-Raw Extract
-    │
-    ├── [Step 1] Remove blank rows & fix data types
-    ├── [Step 2] Join with customer master mapping table
-    ├── [Step 3] Classify invoices into aging buckets
-    ├── [Step 4] Calculate DSO and overdue flags
-    └── [Step 5] Output clean analytical table
+Invoice Age          Volume           Action
+─────────────────────────────────────────────────────────────
+0  – 30  days   │████████████████│  Monitor
+31 – 60  days   │████████████    │  Soft follow-up
+61 – 90  days   │████████        │  Escalate to collector
+90+      days   │████            │  ⚠️ Legal / write-off risk
 ```
 
-### Step 3 — Dashboard Refresh
+### Key KPIs Tracked
 
-Open the dashboard file in `dashboards/` and refresh to load the latest transformed data.
-
----
-
-## 📈 Dashboards & KPIs
-
-### Key Performance Indicators Tracked
-
-| KPI | Formula | Target |
-|-----|---------|--------|
-| 💰 **Total AR Outstanding** | Sum of all open invoices | — |
-| 📅 **Days Sales Outstanding (DSO)** | (AR Balance / Total Credit Sales) × Days | < 45 days |
-| ⚠️ **Overdue Rate** | Overdue invoices / Total open invoices | < 10% |
-| 🏆 **Collection Effectiveness Index (CEI)** | (Beginning AR + Sales − Ending AR) / (Beginning AR + Sales) | > 85% |
-
-### Aging Bucket Breakdown
-
-```
-┌─────────────┬──────────────┬──────────────┬──────────────┐
-│   Current   │   31–60 Days │   61–90 Days │   90+ Days   │
-│  (0–30 Days)│              │              │  ⚠️ Overdue  │
-└─────────────┴──────────────┴──────────────┴──────────────┘
-```
+| KPI | Formula |
+|-----|---------|
+| **Total AR Outstanding** | `SUM(Amount WHERE Status IN (Open, Partial))` |
+| **Days Sales Outstanding (DSO)** | `(AR Balance / Credit Sales) × Days in Period` |
+| **Collection Rate** | `Cleared / (Cleared + Open + Partial) × 100` |
+| **Bank Acceptance Rate** | `Accepted / Total Bank Docs × 100` |
+| **Overdue Rate** | `Invoices > 60 days / Total Open × 100` |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, suggestions, and improvements are welcome!
-
 1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/your-feature-name`
-3. **Commit** your changes: `git commit -m 'feat: add new aging bucket logic'`
-4. **Push** to the branch: `git push origin feature/your-feature-name`
+2. **Create** a feature branch: `git checkout -b feature/your-feature`
+3. **Commit** using conventional commits: `git commit -m "feat: add aging bucket logic"`
+4. **Push**: `git push origin feature/your-feature`
 5. **Open** a Pull Request
 
 ### Commit Convention
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/):
-
 | Prefix | Use Case |
 |--------|----------|
-| `feat:` | New feature or pipeline step |
-| `fix:` | Bug fix in ETL logic |
-| `docs:` | Documentation updates |
-| `refactor:` | Code restructure without behavior change |
-| `data:` | Data file updates or schema changes |
+| `feat:` | New notebook, ETL step, or pipeline stage |
+| `fix:` | Bug fix in data logic |
+| `data:` | Schema or column changes |
+| `docs:` | README or docstring updates |
+| `refactor:` | Code cleanup without behavior change |
+| `perf:` | Performance improvements |
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-Made with ❤️ for Data Engineering excellence
+Built with ❤️ by [Sohila Khaled Abbas](https://github.com/Sohila-Khaled-Abbas)
 
 **[⬆ Back to Top](#-ar-financial-tracking-system)**
 
