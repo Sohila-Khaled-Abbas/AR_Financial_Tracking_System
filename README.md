@@ -8,11 +8,12 @@
 <img src="https://img.shields.io/badge/Pandas%20%7C%20NumPy-Engine-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas"/>
 <img src="https://img.shields.io/badge/Parquet%20%7C%20PyArrow-Storage-E25A1C?style=for-the-badge&logo=apacheparquet&logoColor=white" alt="Parquet"/>
 <img src="https://img.shields.io/badge/Power%20Query-ETL-F2A900?style=for-the-badge&logo=microsoftexcel&logoColor=white" alt="Power Query"/>
+<img src="https://img.shields.io/badge/Power%20BI-Dashboard-F2C811?style=for-the-badge&logo=powerbi&logoColor=black" alt="Power BI"/>
 <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License"/>
 
 <br/>
 
-> **An end-to-end Accounts Receivable data engineering pipeline** — synthetic data generation at scale (950K+ records), Power Query ETL transformation, Star Schema modeling, and collection follow-up simulation — built for real-world AR analytics scenarios.
+> **An end-to-end Accounts Receivable data engineering pipeline** — synthetic data generation at scale (950K+ records), Power Query ETL transformation, Star Schema modeling, collection follow-up simulation, and **Power BI dashboard** — built for real-world AR analytics scenarios.
 
 <br/>
 
@@ -30,6 +31,7 @@
 - [📓 Notebooks](#-notebooks)
 - [🔧 Scripts — Daily Updates & CDC](#-scripts--utility--daily-pipeline-scripts)
 - [⚙️ ETL Engine](#%EF%B8%8F-etl-engine)
+- [📊 Power BI Dashboard](#-power-bi-dashboard)
 - [🗓️ Power Query Queries — dim\_Date & Dynamic\_Holidays](#%EF%B8%8F-power-query-queries--dim_date--dynamic_holidays)
 - [⚡ Performance](#-performance)
 - [🚀 Getting Started](#-getting-started)
@@ -44,7 +46,7 @@
 
 The **AR Financial Tracking System** is a data engineering project that simulates and tracks an enterprise Accounts Receivable lifecycle — from synthetic invoice generation through ETL transformation to collection activity simulation.
 
-The pipeline generates **950,000 invoices** across **10,000 customers** with realistic financial distributions, models them in a **Star Schema**, transforms them through **Power Query M-language**, and simulates **collection team follow-up activity** with human-like comments and promised payment dates.
+The pipeline generates **950,000 invoices** across **10,000 customers** with realistic financial distributions, models them in a **Star Schema**, transforms them through **Power Query M-language**, and simulates **collection team follow-up activity** with human-like comments and promised payment dates, visualized via **Power BI**.
 
 ### 🔑 What This System Does
 
@@ -55,7 +57,8 @@ The pipeline generates **950,000 invoices** across **10,000 customers** with rea
 | 🔄 **ETL Processing** | Power Query cleans, joins, and enriches raw Parquet files into an analytical data model |
 | 📅 **Daily Updates (CDC)** | `daily_updates.py` fetches live EG holidays from API and applies Change Data Capture upserts to the master Parquet file |
 | 🎭 **Activity Simulation** | Realistic AR collection follow-up notes, collector assignments, and promise-to-pay dates |
-| 📊 **Star Schema** | Fact + Dimension tables structured for BI consumption |
+| 📊 **Power BI Consumption** | Excel Data Model (`Data_Model_Engine.xlsx`) imported directly into Power BI Desktop for interactive AR analytics |
+| ⭐ **Star Schema** | Fact + Dimension tables structured for BI consumption |
 
 ---
 
@@ -66,12 +69,12 @@ The pipeline flows through five stages: **data generation → raw storage → ET
 > See the [full architecture diagram](#-architecture-diagram) below for a visual overview including the Star Schema ERD.
 
 ```
- data_generator.ipynb  →  data/raw/  →  etl/Data_Model_Engine.xlsx
-        ↓                   (.parquet)         ↓              ↓
-  [NumPy · Faker]         [pyarrow]     [Dashboards]    [user_comments_generator.ipynb]
-  950K invoices          ~77% smaller   [BI Layer]      [5K sampled follow-ups]
-  10K customers                                           ↓
-  ~399K bank docs                                   data/output/User_Comments.xlsx
+ data_generator.ipynb  →  data/raw/  →  etl/Data_Model_Engine.xlsx  →  Power BI
+        ↓                   (.parquet)         ↓              ↓          (.pbix)
+  [NumPy · Faker]         [pyarrow]     [AR Dashboard]  [user_comments_generator.ipynb]
+  950K invoices          ~77% smaller   [Power BI]      [5K sampled follow-ups]
+  10K customers                         [Imported from         ↓
+  ~399K bank docs                        Excel Model]  data/output/User_Comments.xlsx
 ```
 
 ---
@@ -117,7 +120,8 @@ AR_Financial_Tracking_System/
 ├── ⚙️  etl/
 │   └── Data_Model_Engine.xlsx        # Power Query ETL workbook (~47 MB, git-ignored)
 │
-├── 📊 dashboards/                    # Dashboard files (coming soon)
+├── 📊 dashboards/
+│   └── AR_Tracking_Dashboard.pbix    # Power BI dashboard — imported from Data_Model_Engine.xlsx
 │
 ├── 📁 docs/
 │   ├── diagram.svg                   # Pipeline & ERD architecture diagram (vector)
@@ -187,11 +191,11 @@ AR_Financial_Tracking_System/
 
 ### Schema Statistics
 
-| Table | Rows | Size | Role |
-|-------|------|------|------|
-| `fact_AR_Invoices` | 950,000 | ~58 MB | Core fact table |
-| `dim_Customers` | 10,000 | ~295 KB | Customer dimension |
-| `fact_Bank_Documents` | ~399,000 | ~24 MB | Bank tracking fact |
+| Table | Rows | Parquet Size | Role |
+|-------|------|-------------|------|
+| `fact_AR_Invoices` | 950,000 | ~13 MB | Core fact table |
+| `dim_Customers` | 10,000 | ~0.2 MB | Customer dimension |
+| `fact_Bank_Documents` | ~399,000 | ~5 MB | Bank tracking fact |
 | `dim_Date` | ~730+ | — | Date dimension (Power Query) |
 | `Dynamic_Holidays` | varies | — | API-sourced EG public holidays (helper) |
 | `User_Comments` (output) | 5,000 | — | Follow-up simulation |
@@ -383,6 +387,41 @@ The Power Query ETL workbook connects to the raw **Parquet files** and applies t
 
 ---
 
+## 📊 Power BI Dashboard
+
+**File:** `dashboards/AR_Tracking_Dashboard.pbix`
+
+The Power BI dashboard is built by **importing the Excel Data Model** (`etl/Data_Model_Engine.xlsx`) directly into Power BI Desktop. This preserves all Power Query transformations, table relationships, and calculated columns without rebuilding anything.
+
+### How the Import Works
+
+| Step | Action |
+|------|--------|
+| 1️⃣ | Open **Power BI Desktop** |
+| 2️⃣ | **File → Import → Power Query, Power Pivot, Power View** |
+| 3️⃣ | Select `etl/Data_Model_Engine.xlsx` |
+| 4️⃣ | Power BI imports all queries, relationships, and the Star Schema automatically |
+| 5️⃣ | **Home → Refresh** to load the latest Parquet data |
+
+> [!IMPORTANT]
+> Run `notebooks/data_generator.ipynb` first to ensure `data/raw/*.parquet` files are present before refreshing in Power BI.
+
+### Dashboard Scope
+
+| Visual | Data Source | KPI |
+|--------|------------|-----|
+| AR Aging Analysis | `fact_AR_Invoices` + `dim_Date` | Outstanding by bucket (0–30 / 31–60 / 61–90 / 90+d) |
+| Collection Rate Trend | `fact_AR_Invoices[Status]` | Cleared % over time |
+| Bank Submission Tracker | `fact_Bank_Documents` | Accepted / Under Review / Rejected breakdown |
+| Customer Exposure | `dim_Customers` + `fact_AR_Invoices` | Top-N customers by AR balance |
+| Daily Activity Log | `User_Comments` | Follow-up notes per collector per day |
+| Working Day Calendar | `dim_Date[IsBankingWorkingDay]` | EG banking calendar with public holidays |
+
+> [!NOTE]
+> `dashboards/AR_Tracking_Dashboard.pbix` is **git-tracked** (Power BI files are text-compressed). The Excel ETL workbook is git-ignored due to size — only the `.pbix` is versioned.
+
+---
+
 ## 🗓️ Power Query Queries — dim\_Date & Dynamic\_Holidays
 
 Two Power Query M-language queries extend the ETL workbook with a **fully dynamic date dimension** and **live-fetched Egyptian public holidays**.
@@ -553,9 +592,15 @@ This does two things in sequence:
 - Fetches live Egyptian public holidays → saves `data/raw/Dynamic_Holidays.parquet`
 - Applies CDC upsert → updates 500 Open invoices to Cleared, inserts 500 new invoices into the master Parquet file
 
-### Step 6 — Explore Dashboards
+### Step 6 — Open the Power BI Dashboard
 
-Open files in the `dashboards/` folder (coming soon).
+1. Open **Power BI Desktop**
+2. **File → Import → Power Query, Power Pivot, Power View** → select `etl/Data_Model_Engine.xlsx`
+3. Power BI imports the full data model, relationships, and all queries automatically
+4. The dashboard in `dashboards/AR_Tracking_Dashboard.pbix` will be ready to open
+
+> [!TIP]
+> Make sure `data/raw/*.parquet` files exist before refreshing in Power BI. Run `data_generator.ipynb` first, then **Home → Refresh** in Power BI Desktop.
 
 > [!IMPORTANT]
 > `data/raw/` is in `.gitignore` — Parquet files are never committed. Always regenerate locally using `data_generator.ipynb`. Generation takes ~11 seconds; Parquet files are ~77% smaller than the equivalent CSVs.

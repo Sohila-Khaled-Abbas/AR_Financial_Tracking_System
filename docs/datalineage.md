@@ -1,7 +1,7 @@
 # Data Lineage — AR Financial Tracking System
 
 > **Document:** `docs/datalineage.md`  
-> **Version:** 1.3 · 2026-04-20  
+> **Version:** 1.4 · 2026-04-20  
 > **Scope:** End-to-end column-level data lineage from synthetic generation through ETL to output layer
 
 ---
@@ -11,9 +11,9 @@
 ```
 Source (Synthetic)          Raw Layer (Parquet)    ETL Layer                    Output Layer
 ─────────────────           ──────────             ─────────                    ────────────
-Faker · NumPy         →   data/raw/*.parquet  →   Data_Model_Engine.xlsx   →   Dashboards
+Faker · NumPy         →   data/raw/*.parquet  →   Data_Model_Engine.xlsx   →   Power BI (.pbix)
                             (pyarrow engine)    →   (Power Query M)            →   User_Comments.xlsx
-Nager Date API        →   Dynamic_Holidays     →   dim_Date                 →   Analytical Model
+Nager Date API        →   Dynamic_Holidays     →   dim_Date                 →   AR Analytics Dashboard
 (scripts/daily_updates.py) (Parquet · pyarrow)      (date dimension)
 
 Daily Delta (CDC)     →   AR_Invoices_950K     (Upsert · dedup · overwrite)
@@ -28,6 +28,7 @@ Daily Delta (CDC)     →   AR_Invoices_950K     (Upsert · dedup · overwrite)
 | **Holidays API** | Nager Date API (`/api/v3/PublicHolidays/{year}/EG`) | JSON → Parquet | External / Python |
 | **Daily Updates** | `scripts/daily_updates.py` | Python → Parquet | Python |
 | **Activity** | `notebooks/user_comments_generator.ipynb` | In-memory → XLSX | Python |
+| **BI Dashboard** | `dashboards/AR_Tracking_Dashboard.pbix` | Power BI (imported from Excel) | Power BI Desktop |
 | **Output** | `data/output/` | XLSX | File system |
 
 ---
@@ -369,8 +370,8 @@ data_generator.ipynb
     │
     ├──→ data/raw/Customers_Master.parquet
     │           │
-    │           └──→ etl/Data_Model_Engine.xlsx  ──→  Analytical Model
-    │                           ▲
+    │           └──→ etl/Data_Model_Engine.xlsx  ──→  dashboards/AR_Tracking_Dashboard.pbix
+    │                           ▲                         (Power BI import)
     ├──→ data/raw/AR_Invoices_950K.parquet ──┤
     │           │               ▲         │
     │           │               │         └──── [PostingDate boundaries] ──→ dim_Date
@@ -474,9 +475,10 @@ data_generator.ipynb
 2. **Refresh** `etl/Data_Model_Engine.xlsx` → Data → Refresh All
 3. **Run** `notebooks/user_comments_generator.ipynb` — regenerates `User_Comments.xlsx`
 4. **Run** `scripts/daily_updates.py` — (daily / on-demand) fetches holidays from API and applies CDC upsert to master invoice file
+5. **Open** `dashboards/AR_Tracking_Dashboard.pbix` in Power BI Desktop → **Home → Refresh** to load latest data
 
 > [!IMPORTANT]
-> Step 1 must complete before Steps 2, 3, and 4. Steps 2, 3, and 4 are independent of each other.
+> Step 1 must complete before Steps 2, 3, 4, and 5. Steps 2, 3, and 4 are independent of each other. Step 5 requires Step 2 to complete first.
 
 > [!NOTE]
 > `data/raw/` is excluded from version control (`.gitignore`). Always regenerate locally before running the ETL. Generation takes ~10.76 seconds on a standard laptop.
