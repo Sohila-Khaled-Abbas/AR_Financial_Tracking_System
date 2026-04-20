@@ -1,0 +1,214 @@
+# =============================================================================
+#  AR Financial Tracking System — .gitignore
+#  Covers: Python, Jupyter, Excel/Power Query, SAP exports, OS & IDE files
+# =============================================================================
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🔒 SENSITIVE FINANCIAL DATA — Never commit raw or processed financial data
+# ─────────────────────────────────────────────────────────────────────────────
+data/raw/
+data/processed/
+data/output/
+
+# Allow mapping/reference tables (non-sensitive dimension data)
+!data/mappings/
+!data/mappings/**
+
+# Specific SAP export patterns
+*.sap
+*_extract_*.csv
+*_export_*.xlsx
+*_dump_*.csv
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🐍 Python
+# ─────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+conda-meta/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+MANIFEST
+
+# Unit test / coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+htmlcov/
+*.cover
+*.py,cover
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 📓 Jupyter Notebooks
+# ─────────────────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Strip notebook output before committing (keep code, drop results)
+# Tip: use nbstripout — https://github.com/kynan/nbstripout
+# notebooks/**/*.ipynb output cells are stripped via pre-commit hook
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 📊 Microsoft Office & Excel / Power Query
+# ─────────────────────────────────────────────────────────────────────────────
+# Lock/temp files created when Office has a file open
+~$*.xlsx
+~$*.xls
+~$*.xlsm
+~$*.xlsb
+~$*.docx
+~$*.pptx
+~$*.pbix
+
+# Temporary Office files
+*.tmp
+*.temp
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🖥️ Operating System Files
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🛠️ IDEs & Editors
+# ─────────────────────────────────────────────────────────────────────────────
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (PyCharm, DataSpell)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Spyder
+.spyderproject.cfg
+.spyproject
+
+# Rope
+.ropeproject
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 📦 Dependency & Package Managers
+# ─────────────────────────────────────────────────────────────────────────────
+node_modules/
+.npm
+package-lock.json
+yarn.lock
+Pipfile.lock
+poetry.lock
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 📝 Logs & Diagnostics
+# ─────────────────────────────────────────────────────────────────────────────
+*.log
+*.out
+*.err
+logs/
+log/
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🔑 Secrets & Credentials
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+secrets.yaml
+secrets.yml
+config/credentials.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 📈 Power BI
+# ─────────────────────────────────────────────────────────────────────────────
+# Commit .pbix only if it doesn't embed large datasets
+# *.pbix
+
+# Auto-save / recovery files
+*.pbix.autosave
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🗃️ Archives & Backups
+# ─────────────────────────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.bak
+*.backup
+*.old
