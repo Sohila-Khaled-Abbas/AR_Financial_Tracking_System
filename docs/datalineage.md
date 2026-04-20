@@ -1,7 +1,7 @@
 # Data Lineage — AR Financial Tracking System
 
 > **Document:** `docs/datalineage.md`  
-> **Version:** 1.1 · 2026-04-20  
+> **Version:** 1.2 · 2026-04-20  
 > **Scope:** End-to-end column-level data lineage from synthetic generation through ETL to output layer
 
 ---
@@ -9,18 +9,18 @@
 ## Overview
 
 ```
-Source (Synthetic)          Raw Layer              ETL Layer                    Output Layer
+Source (Synthetic)          Raw Layer (Parquet)    ETL Layer                    Output Layer
 ─────────────────           ──────────             ─────────                    ────────────
-Faker · NumPy         →   data/raw/*.csv    →   Data_Model_Engine.xlsx   →   Dashboards
-                                            →   (Power Query M)            →   User_Comments.xlsx
-Nager Date API        →   Dynamic_Holidays  →   dim_Date                 →   Analytical Model
-(public holidays EG)       (helper query)        (date dimension)
+Faker · NumPy         →   data/raw/*.parquet  →   Data_Model_Engine.xlsx   →   Dashboards
+                            (pyarrow engine)    →   (Power Query M)            →   User_Comments.xlsx
+Nager Date API        →   Dynamic_Holidays     →   dim_Date                 →   Analytical Model
+(public holidays EG)       (helper query)           (date dimension)
 ```
 
 | Layer | Location | Format | Owner |
 |-------|----------|--------|-------|
 | **Generation** | `notebooks/data_generator.ipynb` | In-memory (Pandas) | Python |
-| **Raw** | `data/raw/` | CSV | File system |
+| **Raw (Parquet)** | `data/raw/` | Parquet (pyarrow) | File system |
 | **ETL / Model** | `etl/Data_Model_Engine.xlsx` | Excel / Power Query | Power Query M |
 | **Holidays API** | Nager Date API (`/api/v3/PublicHolidays/{year}/EG`) | JSON → Power Query | External |
 | **Activity** | `notebooks/user_comments_generator.ipynb` | In-memory → XLSX | Python |
@@ -38,7 +38,7 @@ Nager Date API        →   Dynamic_Holidays  →   dim_Date                 →
 | `CustomerName` | Faker | `Faker().company()` | Random company names |
 | `PaymentTerms` | NumPy | `np.random.choice([30, 60, 90, 120])` | Uniform distribution |
 
-**Output:** `data/raw/Customers_Master.csv` — 10,000 rows · ~295 KB
+**Output:** `data/raw/Customers_Master.parquet` — 10,000 rows · ~0.2 MB
 
 ---
 
@@ -53,7 +53,7 @@ Nager Date API        →   Dynamic_Holidays  →   dim_Date                 →
 | `Status` | Vectorized | `np.random.choice(['Open','Partial','Cleared'], p=[0.4,0.2,0.4])` | Weighted probability |
 
 **Date window:** today − 730 days → today  
-**Output:** `data/raw/AR_Invoices_950K.csv` — 950,000 rows · ~58 MB
+**Output:** `data/raw/AR_Invoices_950K.parquet` — 950,000 rows · ~13 MB (was ~58 MB as CSV)
 
 ---
 
@@ -67,7 +67,7 @@ Nager Date API        →   Dynamic_Holidays  →   dim_Date                 →
 | `DocStatus` | Vectorized | `np.random.choice(['Under Review','Accepted','Rejected'], p=[0.6,0.3,0.1])` | Weighted probability |
 
 **Filter rule:** `Status IN ('Open', 'Partial')` → 70% of those rows selected  
-**Output:** `data/raw/Bank_Documents_Tracking.csv` — ~399,219 rows · ~24 MB
+**Output:** `data/raw/Bank_Documents_Tracking.parquet` — ~399,219 rows · ~5 MB (was ~24 MB as CSV)
 
 ---
 
@@ -90,9 +90,9 @@ Powered by **Power Query M-Language**. Connects directly to `data/raw/` CSVs.
 
 | Query Name | Source File | Row Count | Load Mode |
 |------------|-------------|-----------|-----------|
-| `raw_Invoices` | `data/raw/AR_Invoices_950K.csv` | 950,000 | Connection only |
-| `raw_Customers` | `data/raw/Customers_Master.csv` | 10,000 | Connection only |
-| `raw_BankDocs` | `data/raw/Bank_Documents_Tracking.csv` | ~399,219 | Connection only |
+| `raw_Invoices` | `data/raw/AR_Invoices_950K.parquet` | 950,000 | Connection only |
+| `raw_Customers` | `data/raw/Customers_Master.parquet` | 10,000 | Connection only |
+| `raw_BankDocs` | `data/raw/Bank_Documents_Tracking.parquet` | ~399,219 | Connection only |
 
 ---
 

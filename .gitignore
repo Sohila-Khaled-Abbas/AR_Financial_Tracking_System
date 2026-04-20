@@ -11,6 +11,11 @@ data/raw/
 data/processed/
 data/output/
 
+# Parquet files are covered by data/raw/ above.
+# Explicit patterns for safety (e.g. if files are moved):
+*.parquet
+*.parq
+
 # Allow mapping/reference tables (non-sensitive dimension data)
 !data/mappings/
 !data/mappings/**
@@ -27,6 +32,9 @@ data/output/
 # ─────────────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+
+# One-off migration/utility scripts (not part of the project pipeline)
+nnotebooks/migrate_to_parquet.py
 *$py.class
 *.pyo
 *.pyd

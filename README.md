@@ -6,6 +6,7 @@
 <img src="https://img.shields.io/badge/Records-950K%2B-blueviolet?style=for-the-badge&logo=databricks&logoColor=white" alt="Records"/>
 <img src="https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
 <img src="https://img.shields.io/badge/Pandas%20%7C%20NumPy-Engine-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas"/>
+<img src="https://img.shields.io/badge/Parquet%20%7C%20PyArrow-Storage-E25A1C?style=for-the-badge&logo=apacheparquet&logoColor=white" alt="Parquet"/>
 <img src="https://img.shields.io/badge/Power%20Query-ETL-F2A900?style=for-the-badge&logo=microsoftexcel&logoColor=white" alt="Power Query"/>
 <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License"/>
 
@@ -49,7 +50,8 @@ The pipeline generates **950,000 invoices** across **10,000 customers** with rea
 | Layer | What Happens |
 |-------|-------------|
 | 🏭 **Data Generation** | Vectorized synthetic dataset creation — 950K invoices, 10K customers, ~399K bank documents |
-| 🔄 **ETL Processing** | Power Query cleans, joins, and enriches raw CSVs into an analytical data model |
+| 💾 **Parquet Storage** | All raw tables exported as Parquet via `pyarrow` — ~77 % smaller than CSV, schema-preserving |
+| 🔄 **ETL Processing** | Power Query cleans, joins, and enriches raw Parquet files into an analytical data model |
 | 🎭 **Activity Simulation** | Realistic AR collection follow-up notes, collector assignments, and promise-to-pay dates |
 | 📊 **Star Schema** | Fact + Dimension tables structured for BI consumption |
 
@@ -63,11 +65,11 @@ The pipeline flows through four stages: **data generation → raw storage → ET
 
 ```
  data_generator.ipynb  →  data/raw/  →  etl/Data_Model_Engine.xlsx
-        ↓                                         ↓              ↓
-  [NumPy · Faker]                         [Dashboards]    [user_comments_generator.ipynb]
-  950K invoices                           [BI Layer]      [5K sampled follow-ups]
-  10K customers                                            ↓
-  ~399K bank docs                                    data/output/User_Comments.xlsx
+        ↓                   (.parquet)         ↓              ↓
+  [NumPy · Faker]         [pyarrow]     [Dashboards]    [user_comments_generator.ipynb]
+  950K invoices          ~77% smaller   [BI Layer]      [5K sampled follow-ups]
+  10K customers                                           ↓
+  ~399K bank docs                                   data/output/User_Comments.xlsx
 ```
 
 ---
@@ -102,10 +104,10 @@ AR_Financial_Tracking_System/
 │   └── paths.py                      # Shared path configuration (OS-agnostic)
 │
 ├── 📂 data/
-│   ├── raw/                          # Generated CSVs (git-ignored — large files)
-│   │   ├── AR_Invoices_950K.csv      # Fact table · 950,000 rows · ~58 MB
-│   │   ├── Customers_Master.csv      # Customer dimension · 10,000 rows · ~295 KB
-│   │   └── Bank_Documents_Tracking.csv # Bank submission tracking · ~399K rows · ~24 MB
+│   ├── raw/                          # Generated Parquet files (git-ignored)
+│   │   ├── AR_Invoices_950K.parquet      # Fact table · 950,000 rows · ~13 MB 🔽 was ~58 MB CSV
+│   │   ├── Customers_Master.parquet      # Customer dimension · 10,000 rows · ~0.2 MB
+│   │   └── Bank_Documents_Tracking.parquet # Bank submission tracking · ~399K rows · ~5 MB
 │   ├── mappings/                     # Reference & dimension lookup tables
 │   └── output/                       # Notebook exports (auto-created)
 │       └── User_Comments.xlsx        # 5,000 simulated follow-up records
@@ -117,7 +119,7 @@ AR_Financial_Tracking_System/
 │
 ├── 📁 docs/
 │   ├── diagram.svg                   # Pipeline & ERD architecture diagram (vector)
-│   ├── diagram.png                   # High-resolution PNG (4140×2100 px, 3× scale)
+│   ├── diagram.png                   # High-resolution PNG (4140×2580 px, 3× scale)
 │   └── datalineage.md               # End-to-end column-level data lineage
 │
 ├── 📄 README.md
@@ -126,7 +128,7 @@ AR_Financial_Tracking_System/
 ```
 
 > [!NOTE]
-> `data/raw/` files are excluded from Git via `.gitignore` (files exceed 50MB). Run `data_generator.ipynb` to regenerate them locally in under 15 seconds.
+> `data/raw/` files are excluded from Git via `.gitignore`. Run `data_generator.ipynb` to regenerate them locally in under 15 seconds. Parquet files (`*.parquet`) are also excluded globally.
 
 ---
 
@@ -207,7 +209,7 @@ Generates the entire dataset using **high-performance vectorized operations**.
 **Pipeline steps:**
 
 ```
-Install deps (pandas · numpy · faker)
+Install deps (pandas · numpy · faker · pyarrow)
         │
         ▼
 [1] Environment Setup
@@ -231,10 +233,10 @@ Install deps (pandas · numpy · faker)
     └─ DocStatus: Under Review(60%) · Accepted(30%) · Rejected(10%)
         │
         ▼
-[5] Export to CSV → data/raw/
-    └─ AR_Invoices_950K.csv
-    └─ Customers_Master.csv
-    └─ Bank_Documents_Tracking.csv
+[5] Export to Parquet → data/raw/
+    └─ AR_Invoices_950K.parquet      (~13 MB — was ~58 MB CSV)
+    └─ Customers_Master.parquet      (~0.2 MB)
+    └─ Bank_Documents_Tracking.parquet (~5 MB — was ~24 MB CSV)
         │
         ▼
 [6] Data Quality Assurance (DQA)
@@ -263,7 +265,7 @@ Simulates realistic **AR collection team activity** by generating follow-up note
 
 ```
 [1] Load Data
-    └─ Reads AR_Invoices_950K.csv via paths.py (OS-agnostic)
+    └─ Reads AR_Invoices_950K.parquet via pathlib (OS-agnostic)
     └─ Filters for Status ∈ {Open, Partial}
         │
         ▼
@@ -309,7 +311,7 @@ Eliminates hardcoded Windows backslash paths across all notebooks. Import once, 
 from paths import RAW_DATA_DIR, OUTPUT_DIR, MAPPINGS_DIR
 
 # Example usage
-file_path = RAW_DATA_DIR / "AR_Invoices_950K.csv"
+file_path = RAW_DATA_DIR / "AR_Invoices_950K.parquet"
 output    = OUTPUT_DIR   / "User_Comments.xlsx"
 ```
 
@@ -335,7 +337,7 @@ The Power Query ETL workbook connects to the raw CSVs and applies the full trans
 | 🔟 | Output analytical model for dashboard consumption |
 
 > [!TIP]
-> To refresh: open `Data_Model_Engine.xlsx` → **Data tab** → **Refresh All**. Ensure the raw CSVs are present in `data/raw/` first.
+> To refresh: open `Data_Model_Engine.xlsx` → **Data tab** → **Refresh All**. Ensure the Parquet files are present in `data/raw/` first (regenerate by running `data_generator.ipynb`).
 
 ---
 
@@ -470,7 +472,7 @@ The data generation pipeline is built for **high throughput** using vectorized N
 
 ```bash
 python --version      # 3.8+ required (tested on 3.13.1)
-pip install pandas numpy faker openpyxl
+pip install pandas numpy faker openpyxl pyarrow
 ```
 
 ### Step 1 — Clone
@@ -482,13 +484,11 @@ cd AR_Financial_Tracking_System
 
 ### Step 2 — Generate the Raw Data
 
-Open and run **all cells** in `notebooks/data_generator.ipynb`.
-
-This creates the three CSV files in `data/raw/`:
+This creates three **Parquet files** in `data/raw/`:
 ```
-data/raw/AR_Invoices_950K.csv          (~58 MB)
-data/raw/Customers_Master.csv          (~295 KB)
-data/raw/Bank_Documents_Tracking.csv   (~24 MB)
+data/raw/AR_Invoices_950K.parquet          (~13 MB  ← was ~58 MB as CSV)
+data/raw/Customers_Master.parquet          (~0.2 MB ← was ~295 KB as CSV)
+data/raw/Bank_Documents_Tracking.parquet   (~5 MB   ← was ~24 MB as CSV)
 ```
 
 ### Step 3 — Run the ETL
@@ -506,7 +506,7 @@ Output: `data/output/User_Comments.xlsx`
 Open files in the `dashboards/` folder (coming soon).
 
 > [!IMPORTANT]
-> `data/raw/` is in `.gitignore` — raw CSVs are never committed. Always regenerate locally using `data_generator.ipynb`.
+> `data/raw/` is in `.gitignore` — Parquet files are never committed. Always regenerate locally using `data_generator.ipynb`. Generation takes ~11 seconds; Parquet files are ~77% smaller than the equivalent CSVs.
 
 ---
 
