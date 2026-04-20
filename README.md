@@ -23,6 +23,7 @@
 
 - [🎯 Project Overview](#-project-overview)
 - [🏗️ Architecture & Data Flow](#%EF%B8%8F-architecture--data-flow)
+- [📐 Architecture Diagram](#-architecture-diagram)
 - [📁 Repository Structure](#-repository-structure)
 - [🗄️ Data Model — Star Schema](#%EF%B8%8F-data-model--star-schema)
 - [📓 Notebooks](#-notebooks)
@@ -30,6 +31,7 @@
 - [⚡ Performance](#-performance)
 - [🚀 Getting Started](#-getting-started)
 - [📈 Key Metrics & KPIs](#-key-metrics--kpis)
+- [🔍 Data Lineage](#-data-lineage)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
 
@@ -54,46 +56,37 @@ The pipeline generates **950,000 invoices** across **10,000 customers** with rea
 
 ## 🏗️ Architecture & Data Flow
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                       END-TO-END PIPELINE                                │
-└──────────────────────────────────────────────────────────────────────────┘
+The pipeline flows through four stages: **data generation → raw storage → ETL transformation → output layer**.
 
-  ┌──────────────────────────┐
-  │   data_generator.ipynb   │  NumPy · Pandas · Faker
-  │   (950K record engine)   │
-  └────────────┬─────────────┘
-               │  generates 3 CSV files
-               ▼
-  ┌────────────────────────────────────────────────┐
-  │                 data/raw/                      │
-  │  ┌─────────────────────────────────────────┐   │
-  │  │  AR_Invoices_950K.csv        ~58 MB     │   │  ← Fact Table
-  │  │  Customers_Master.csv        ~295 KB    │   │  ← Dimension Table
-  │  │  Bank_Documents_Tracking.csv ~24 MB     │   │  ← Tracking Table
-  │  └─────────────────────────────────────────┘   │
-  └────────────────────┬───────────────────────────┘
-                       │
-               ┌───────▼────────┐
-               │  etl/          │  Power Query M-Language
-               │  Data_Model_   │  Clean · Join · Transform
-               │  Engine.xlsx   │  Aging · DSO · Status flags
-               └───────┬────────┘
-                       │
-          ┌────────────┴────────────┐
-          │                         │
-  ┌───────▼────────┐      ┌─────────▼──────────────┐
-  │  Dashboards    │      │  user_comments_         │
-  │  (BI Layer)    │      │  generator.ipynb        │
-  │                │      │  5K sampled follow-ups  │
-  └────────────────┘      └────────────────────────-┘
-                                     │
-                            ┌────────▼────────┐
-                            │  data/output/   │
-                            │ User_Comments   │
-                            │    .xlsx        │
-                            └─────────────────┘
+> See the [full architecture diagram](#-architecture-diagram) below for a visual overview including the Star Schema ERD.
+
 ```
+ data_generator.ipynb  →  data/raw/  →  etl/Data_Model_Engine.xlsx
+        ↓                                         ↓              ↓
+  [NumPy · Faker]                         [Dashboards]    [user_comments_generator.ipynb]
+  950K invoices                           [BI Layer]      [5K sampled follow-ups]
+  10K customers                                            ↓
+  ~399K bank docs                                    data/output/User_Comments.xlsx
+```
+
+---
+
+## 📐 Architecture Diagram
+
+<div align="center">
+
+![AR Financial Tracking System — Pipeline & ERD Diagram](docs/diagram.png)
+
+</div>
+
+> [!TIP]
+> High-resolution PNG (4140×2100 px). Open [`docs/diagram.svg`](docs/diagram.svg) for a fully zoomable vector version.
+
+---
+
+## 🔍 Data Lineage
+
+Full column-level lineage — source generation logic, ETL transformations, KPI formulas, data contracts, and refresh order — is documented in [`docs/datalineage.md`](docs/datalineage.md).
 
 ---
 
@@ -120,6 +113,11 @@ AR_Financial_Tracking_System/
 │   └── Data_Model_Engine.xlsx        # Power Query ETL workbook (~47 MB)
 │
 ├── 📊 dashboards/                    # Dashboard files (coming soon)
+│
+├── 📁 docs/
+│   ├── diagram.svg                   # Pipeline & ERD architecture diagram (vector)
+│   ├── diagram.png                   # High-resolution PNG (4140×2100 px, 3× scale)
+│   └── datalineage.md               # End-to-end column-level data lineage
 │
 ├── 📄 README.md
 ├── 📄 .gitignore

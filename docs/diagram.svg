@@ -1,0 +1,460 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 700" width="1380" height="700" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <!-- Table shadows -->
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="3" stdDeviation="7" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="shadowSm" x="-6%" y="-6%" width="112%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+
+    <!-- Header gradients -->
+    <linearGradient id="hdrFact" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a3a6b"/>
+      <stop offset="100%" style="stop-color:#1e4db0"/>
+    </linearGradient>
+    <linearGradient id="hdrDim" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#451a80"/>
+      <stop offset="100%" style="stop-color:#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="hdrBank" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0a3d5c"/>
+      <stop offset="100%" style="stop-color:#0369a1"/>
+    </linearGradient>
+    <linearGradient id="hdrOut" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#03331a"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+
+    <!-- Pipeline stage gradients -->
+    <linearGradient id="pipeGen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d1060"/>
+      <stop offset="100%" style="stop-color:#1a0840"/>
+    </linearGradient>
+    <linearGradient id="pipeRaw" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0e2a4a"/>
+      <stop offset="100%" style="stop-color:#071828"/>
+    </linearGradient>
+    <linearGradient id="pipeEtl" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#063344"/>
+      <stop offset="100%" style="stop-color:#031c27"/>
+    </linearGradient>
+    <linearGradient id="pipeOut" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#03301a"/>
+      <stop offset="100%" style="stop-color:#011a0e"/>
+    </linearGradient>
+
+    <!-- Arrowheads -->
+    <marker id="arrN" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#4b5563"/>
+    </marker>
+    <marker id="arrDash" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#374151"/>
+    </marker>
+    <marker id="arrPipe" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ═══ BACKGROUND ═══ -->
+  <rect width="1380" height="700" fill="#111318" rx="0"/>
+  <!-- Very subtle dot grid -->
+  <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+    <circle cx="14" cy="14" r="0.8" fill="#ffffff" opacity="0.04"/>
+  </pattern>
+  <rect width="1380" height="700" fill="url(#grid)"/>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  PIPELINE STRIP (top)                                       -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Stage 1: Generate -->
+  <rect x="20" y="12" width="240" height="60" rx="8" fill="url(#pipeGen)" stroke="#5b21b6" stroke-width="1.2" filter="url(#shadowSm)"/>
+  <text x="86" y="31" font-size="8.5" font-weight="600" fill="#a78bfa" letter-spacing="1.2">STAGE 1</text>
+  <text x="86" y="47" font-size="12" font-weight="700" fill="#e2e8f0">data_generator</text>
+  <text x="86" y="62" font-size="9.5" fill="#7c6b9e">.ipynb · NumPy · Faker</text>
+  <!-- Notebook icon shape -->
+  <rect x="32" y="26" width="38" height="30" rx="3" fill="#5b21b6" opacity="0.6"/>
+  <line x1="38" y1="33" x2="64" y2="33" stroke="#c4b5fd" stroke-width="1.5"/>
+  <line x1="38" y1="39" x2="64" y2="39" stroke="#c4b5fd" stroke-width="1.5"/>
+  <line x1="38" y1="45" x2="58" y2="45" stroke="#c4b5fd" stroke-width="1.5"/>
+
+  <!-- Arrow 1→2 -->
+  <line x1="260" y1="42" x2="308" y2="42" stroke="#374151" stroke-width="1.5" marker-end="url(#arrPipe)"/>
+  <text x="284" y="38" text-anchor="middle" font-size="8" fill="#4b5563">3 CSVs</text>
+
+  <!-- Stage 2: Raw Data -->
+  <rect x="310" y="12" width="220" height="60" rx="8" fill="url(#pipeRaw)" stroke="#1e40af" stroke-width="1.2" filter="url(#shadowSm)"/>
+  <text x="372" y="31" font-size="8.5" font-weight="600" fill="#60a5fa" letter-spacing="1.2">STAGE 2</text>
+  <text x="372" y="47" font-size="12" font-weight="700" fill="#e2e8f0">data/raw/</text>
+  <text x="372" y="62" font-size="9.5" fill="#4a6a8a">950K · 10K · ~399K rows</text>
+  <!-- Folder icon -->
+  <path d="M322 28 h22 l5 5 h18 v22 h-45 z" fill="#1e40af" opacity="0.6"/>
+  <rect x="322" y="33" width="45" height="22" rx="2" fill="#1e40af" opacity="0.4"/>
+
+  <!-- Arrow 2→3 -->
+  <line x1="530" y1="42" x2="578" y2="42" stroke="#374151" stroke-width="1.5" marker-end="url(#arrPipe)"/>
+  <text x="554" y="38" text-anchor="middle" font-size="8" fill="#4b5563">Power Query</text>
+
+  <!-- Stage 3: ETL -->
+  <rect x="580" y="12" width="220" height="60" rx="8" fill="url(#pipeEtl)" stroke="#0369a1" stroke-width="1.2" filter="url(#shadowSm)"/>
+  <text x="642" y="31" font-size="8.5" font-weight="600" fill="#38bdf8" letter-spacing="1.2">STAGE 3</text>
+  <text x="642" y="47" font-size="12" font-weight="700" fill="#e2e8f0">ETL Engine</text>
+  <text x="642" y="62" font-size="9.5" fill="#2a6a80">M-Language · Clean · Join · Enrich</text>
+  <!-- Gear icon -->
+  <circle cx="616" cy="42" r="14" fill="#0369a1" opacity="0.5"/>
+  <circle cx="616" cy="42" r="7" fill="none" stroke="#7dd3fc" stroke-width="2.5"/>
+  <circle cx="616" cy="42" r="2.5" fill="#7dd3fc"/>
+  <line x1="616" y1="28" x2="616" y2="32" stroke="#7dd3fc" stroke-width="2.5"/>
+  <line x1="616" y1="52" x2="616" y2="56" stroke="#7dd3fc" stroke-width="2.5"/>
+  <line x1="602" y1="42" x2="606" y2="42" stroke="#7dd3fc" stroke-width="2.5"/>
+  <line x1="626" y1="42" x2="630" y2="42" stroke="#7dd3fc" stroke-width="2.5"/>
+
+  <!-- Arrow 3→4 -->
+  <line x1="800" y1="42" x2="848" y2="42" stroke="#374151" stroke-width="1.5" marker-end="url(#arrPipe)"/>
+  <text x="824" y="38" text-anchor="middle" font-size="8" fill="#4b5563">Analytics</text>
+
+  <!-- Stage 4: Output -->
+  <rect x="850" y="12" width="220" height="60" rx="8" fill="url(#pipeOut)" stroke="#059669" stroke-width="1.2" filter="url(#shadowSm)"/>
+  <text x="912" y="31" font-size="8.5" font-weight="600" fill="#34d399" letter-spacing="1.2">STAGE 4</text>
+  <text x="912" y="47" font-size="12" font-weight="700" fill="#e2e8f0">Output Layer</text>
+  <text x="912" y="62" font-size="9.5" fill="#1a5c3a">Dashboards · User_Comments.xlsx</text>
+  <!-- Chart icon -->
+  <rect x="862" y="30" width="36" height="26" rx="2" fill="#059669" opacity="0.3"/>
+  <rect x="865" y="44" width="6" height="10" rx="1" fill="#34d399"/>
+  <rect x="873" y="38" width="6" height="16" rx="1" fill="#34d399"/>
+  <rect x="881" y="34" width="6" height="20" rx="1" fill="#34d399"/>
+  <rect x="889" y="40" width="6" height="14" rx="1" fill="#34d399"/>
+
+  <!-- Title label -->
+  <text x="1100" y="35" font-size="11" font-weight="700" fill="#374151" letter-spacing="2">AR FINANCIAL</text>
+  <text x="1100" y="52" font-size="11" font-weight="700" fill="#374151" letter-spacing="2">TRACKING SYSTEM</text>
+  <text x="1100" y="66" font-size="9" fill="#2d3748" letter-spacing="1.5">STAR SCHEMA · ERD</text>
+  <line x1="1100" y1="70" x2="1360" y2="70" stroke="#1f2937" stroke-width="1"/>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  RELATIONSHIP LINES (drawn before tables so tables sit on  -->
+  <!--  top)                                                       -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <!-- dim_Customers (right edge x=370) → fact_AR_Invoices (left edge x=500) -->
+  <!-- Connect at CustomerID row: dim y=270+36+13=319, fact y=210+36+26+13=285 -->
+  <!-- Route: horizontal elbow -->
+  <path d="M 370,313 H 435 V 285 H 500" fill="none" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arrN)"/>
+  <!-- Cardinality: 1 at left, N at right -->
+  <!-- 1 mark (perpendicular tick) -->
+  <line x1="375" y1="308" x2="375" y2="318" stroke="#6b7280" stroke-width="1.5"/>
+  <!-- N mark (crow foot - 3 lines fanning) -->
+  <line x1="498" y1="280" x2="492" y2="285" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="498" y1="290" x2="492" y2="285" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="500" y1="285" x2="492" y2="285" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="400" y="300" font-size="9" fill="#6b7280" font-weight="600">1</text>
+  <text x="470" y="275" font-size="9" fill="#6b7280" font-weight="600">N</text>
+
+  <!-- fact_AR_Invoices (bottom y=398) → fact_Bank_Documents (top y=460) -->
+  <!-- Connect at InvoiceID: fact center x=660, bank center x=680 -->
+  <path d="M 650,398 V 429 H 700 V 460" fill="none" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arrN)"/>
+  <!-- 1 mark -->
+  <line x1="645" y1="403" x2="655" y2="403" stroke="#6b7280" stroke-width="1.5"/>
+  <!-- N mark crow foot -->
+  <line x1="695" y1="458" x2="700" y2="452" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="705" y1="458" x2="700" y2="452" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="700" y1="458" x2="700" y2="452" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="660" y="420" font-size="9" fill="#6b7280" font-weight="600">1</text>
+  <text x="706" y="450" font-size="9" fill="#6b7280" font-weight="600">N</text>
+
+  <!-- fact_AR_Invoices (right edge x=820) → User_Comments (left edge x=960) -->
+  <!-- Dashed line — sampled subset, not true FK relationship -->
+  <path d="M 820,272 H 890 V 295 H 960" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrDash)"/>
+  <text x="845" y="264" font-size="9" fill="#4b5563">5K sampled</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  TABLE: fact_AR_Invoices  (CENTER — MAIN FACT)             -->
+  <!--  x=500, y=210, w=320, h=188                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Row heights: header=38, col=28, total=38+5×28=178+…       -->
+  <g filter="url(#shadow)">
+    <rect x="500" y="210" width="320" height="188" rx="7" fill="#141c2b" stroke="#1e3a6b" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="500" y="210" width="320" height="38" rx="7" fill="url(#hdrFact)"/>
+    <rect x="500" y="234" width="320" height="14" fill="url(#hdrFact)"/>
+    <!-- Table icon -->
+    <rect x="510" y="219" width="18" height="14" rx="2" fill="#ffffff" opacity="0.12"/>
+    <line x1="510" y1="224" x2="528" y2="224" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <line x1="510" y1="228" x2="528" y2="228" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <text x="534" y="231" font-size="12.5" font-weight="700" fill="#ffffff">fact_AR_Invoices</text>
+    <!-- Row count badge -->
+    <rect x="770" y="218" width="42" height="16" rx="8" fill="#ffffff" opacity="0.12"/>
+    <text x="791" y="229" text-anchor="middle" font-size="8.5" fill="#93c5fd" font-weight="600">950K</text>
+    <!-- Separator -->
+    <line x1="500" y1="248" x2="820" y2="248" stroke="#1e3a6b" stroke-width="1"/>
+
+    <!-- Row 1: InvoiceID PK -->
+    <rect x="500" y="248" width="320" height="28" fill="#0d1520"/>
+    <rect x="508" y="255" width="24" height="14" rx="3" fill="#d97706"/>
+    <text x="520" y="265" text-anchor="middle" font-size="8" font-weight="700" fill="#1a0a00">PK</text>
+    <text x="540" y="266" font-size="11" font-weight="600" fill="#e2e8f0">InvoiceID</text>
+    <text x="814" y="266" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR(15)</text>
+    <line x1="500" y1="276" x2="820" y2="276" stroke="#1a2540" stroke-width="1"/>
+
+    <!-- Row 2: CustomerID FK -->
+    <rect x="500" y="276" width="320" height="28" fill="#111a2c"/>
+    <rect x="508" y="283" width="24" height="14" rx="3" fill="#6d28d9"/>
+    <text x="520" y="293" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff">FK</text>
+    <text x="540" y="294" font-size="11" fill="#c4b5fd">CustomerID</text>
+    <text x="814" y="294" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR(10)</text>
+    <line x1="500" y1="304" x2="820" y2="304" stroke="#1a2540" stroke-width="1"/>
+
+    <!-- Row 3: PostingDate -->
+    <rect x="500" y="304" width="320" height="28" fill="#0d1520"/>
+    <text x="540" y="322" font-size="11" fill="#94a3b8">PostingDate</text>
+    <text x="814" y="322" text-anchor="end" font-size="9.5" fill="#374151">DATETIME</text>
+    <line x1="500" y1="332" x2="820" y2="332" stroke="#1a2540" stroke-width="1"/>
+
+    <!-- Row 4: Amount -->
+    <rect x="500" y="332" width="320" height="28" fill="#111a2c"/>
+    <text x="540" y="350" font-size="11" fill="#94a3b8">Amount</text>
+    <text x="814" y="350" text-anchor="end" font-size="9.5" fill="#374151">FLOAT</text>
+    <line x1="500" y1="360" x2="820" y2="360" stroke="#1a2540" stroke-width="1"/>
+
+    <!-- Row 5: Status -->
+    <rect x="500" y="360" width="320" height="28" rx="7" fill="#0d1520"/>
+    <rect x="500" y="360" width="320" height="21" fill="#0d1520"/>
+    <text x="540" y="378" font-size="11" fill="#94a3b8">Status</text>
+    <!-- Status pills inline -->
+    <rect x="666" y="363" width="36" height="14" rx="6" fill="#164e63"/>
+    <text x="684" y="373" text-anchor="middle" font-size="7.5" fill="#67e8f9">Open</text>
+    <rect x="706" y="363" width="40" height="14" rx="6" fill="#1e3a5f"/>
+    <text x="726" y="373" text-anchor="middle" font-size="7.5" fill="#93c5fd">Partial</text>
+    <rect x="750" y="363" width="46" height="14" rx="6" fill="#14532d"/>
+    <text x="773" y="373" text-anchor="middle" font-size="7.5" fill="#86efac">Cleared</text>
+    <text x="814" y="378" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR</text>
+    <line x1="500" y1="388" x2="820" y2="388" stroke="#1a2540" stroke-width="1"/>
+    <!-- Footer probability strip -->
+    <rect x="500" y="388" width="320" height="10" rx="7" fill="#0a1018"/>
+    <rect x="500" y="388" width="320" height="5" fill="#0a1018"/>
+    <rect x="500" y="393" width="128" height="5" rx="2" fill="#164e63" opacity="0.8"/>
+    <rect x="628" y="393" width="64" height="5" fill="#1e3a5f" opacity="0.8"/>
+    <rect x="692" y="393" width="128" height="5" rx="2" fill="#14532d" opacity="0.8"/>
+    <text x="564" y="399" text-anchor="middle" font-size="7" fill="#4b5563">40%</text>
+    <text x="660" y="399" text-anchor="middle" font-size="7" fill="#4b5563">20%</text>
+    <text x="756" y="399" text-anchor="middle" font-size="7" fill="#4b5563">40%</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  TABLE: dim_Customers  (LEFT)                              -->
+  <!--  x=100, y=250, w=270, h=134                               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <g filter="url(#shadow)">
+    <rect x="100" y="255" width="270" height="130" rx="7" fill="#160d2b" stroke="#4c1d95" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="100" y="255" width="270" height="38" rx="7" fill="url(#hdrDim)"/>
+    <rect x="100" y="279" width="270" height="14" fill="url(#hdrDim)"/>
+    <!-- Icon -->
+    <rect x="110" y="264" width="18" height="14" rx="2" fill="#ffffff" opacity="0.12"/>
+    <line x1="110" y1="269" x2="128" y2="269" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <line x1="110" y1="273" x2="128" y2="273" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <text x="134" y="276" font-size="12.5" font-weight="700" fill="#ffffff">dim_Customers</text>
+    <!-- Badge -->
+    <rect x="321" y="263" width="40" height="16" rx="8" fill="#ffffff" opacity="0.12"/>
+    <text x="341" y="274" text-anchor="middle" font-size="8.5" fill="#d8b4fe" font-weight="600">10K</text>
+    <!-- Sep -->
+    <line x1="100" y1="293" x2="370" y2="293" stroke="#4c1d95" stroke-width="1"/>
+
+    <!-- Row 1: CustomerID PK -->
+    <rect x="100" y="293" width="270" height="28" fill="#0d0820"/>
+    <rect x="108" y="300" width="24" height="14" rx="3" fill="#d97706"/>
+    <text x="120" y="310" text-anchor="middle" font-size="8" font-weight="700" fill="#1a0a00">PK</text>
+    <text x="140" y="311" font-size="11" font-weight="600" fill="#e2e8f0">CustomerID</text>
+    <text x="364" y="311" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR(10)</text>
+    <line x1="100" y1="321" x2="370" y2="321" stroke="#200f40" stroke-width="1"/>
+
+    <!-- Row 2: CustomerName -->
+    <rect x="100" y="321" width="270" height="28" fill="#110a28"/>
+    <text x="140" y="339" font-size="11" fill="#94a3b8">CustomerName</text>
+    <text x="364" y="339" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR</text>
+    <line x1="100" y1="349" x2="370" y2="349" stroke="#200f40" stroke-width="1"/>
+
+    <!-- Row 3: PaymentTerms -->
+    <rect x="100" y="349" width="270" height="36" rx="7" fill="#0d0820"/>
+    <rect x="100" y="349" width="270" height="28" fill="#0d0820"/>
+    <text x="140" y="367" font-size="11" fill="#94a3b8">PaymentTerms</text>
+    <!-- Pills -->
+    <rect x="232" y="352" width="22" height="13" rx="5" fill="#3b0764"/>
+    <text x="243" y="361.5" text-anchor="middle" font-size="7.5" fill="#d8b4fe">30d</text>
+    <rect x="258" y="352" width="22" height="13" rx="5" fill="#3b0764"/>
+    <text x="269" y="361.5" text-anchor="middle" font-size="7.5" fill="#d8b4fe">60d</text>
+    <rect x="284" y="352" width="22" height="13" rx="5" fill="#3b0764"/>
+    <text x="295" y="361.5" text-anchor="middle" font-size="7.5" fill="#d8b4fe">90d</text>
+    <rect x="310" y="352" width="26" height="13" rx="5" fill="#3b0764"/>
+    <text x="323" y="361.5" text-anchor="middle" font-size="7.5" fill="#d8b4fe">120d</text>
+    <text x="364" y="367" text-anchor="end" font-size="9.5" fill="#374151">INT</text>
+    <!-- bottom radius fix -->
+    <rect x="100" y="373" width="270" height="12" rx="7" fill="#0d0820"/>
+    <rect x="100" y="373" width="270" height="8" fill="#0d0820"/>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  TABLE: fact_Bank_Documents  (BOTTOM CENTER)               -->
+  <!--  x=554, y=460, w=292, h=160                               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <g filter="url(#shadow)">
+    <rect x="554" y="460" width="292" height="158" rx="7" fill="#0a1c2b" stroke="#0369a1" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="554" y="460" width="292" height="38" rx="7" fill="url(#hdrBank)"/>
+    <rect x="554" y="484" width="292" height="14" fill="url(#hdrBank)"/>
+    <!-- Icon -->
+    <rect x="564" y="469" width="18" height="14" rx="2" fill="#ffffff" opacity="0.12"/>
+    <line x1="564" y1="474" x2="582" y2="474" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <line x1="564" y1="478" x2="582" y2="478" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <text x="588" y="481" font-size="12.5" font-weight="700" fill="#ffffff">fact_Bank_Documents</text>
+    <!-- Badge -->
+    <rect x="796" y="468" width="42" height="16" rx="8" fill="#ffffff" opacity="0.12"/>
+    <text x="817" y="479" text-anchor="middle" font-size="8.5" fill="#7dd3fc" font-weight="600">399K</text>
+    <!-- Sep -->
+    <line x1="554" y1="498" x2="846" y2="498" stroke="#0369a1" stroke-width="1"/>
+
+    <!-- Row 1: DocID PK -->
+    <rect x="554" y="498" width="292" height="28" fill="#060f18"/>
+    <rect x="562" y="505" width="24" height="14" rx="3" fill="#d97706"/>
+    <text x="574" y="515" text-anchor="middle" font-size="8" font-weight="700" fill="#1a0a00">PK</text>
+    <text x="594" y="516" font-size="11" font-weight="600" fill="#e2e8f0">DocID</text>
+    <text x="840" y="516" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR(12)</text>
+    <line x1="554" y1="526" x2="846" y2="526" stroke="#0a1c2b" stroke-width="1"/>
+
+    <!-- Row 2: InvoiceID FK -->
+    <rect x="554" y="526" width="292" height="28" fill="#081420"/>
+    <rect x="562" y="533" width="24" height="14" rx="3" fill="#6d28d9"/>
+    <text x="574" y="543" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff">FK</text>
+    <text x="594" y="544" font-size="11" fill="#a5b4fc">InvoiceID</text>
+    <text x="840" y="544" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR(15)</text>
+    <line x1="554" y1="554" x2="846" y2="554" stroke="#0a1c2b" stroke-width="1"/>
+
+    <!-- Row 3: BankSubmissionDate -->
+    <rect x="554" y="554" width="292" height="28" fill="#060f18"/>
+    <text x="594" y="572" font-size="11" fill="#94a3b8">BankSubmissionDate</text>
+    <text x="840" y="572" text-anchor="end" font-size="9.5" fill="#374151">DATETIME</text>
+    <line x1="554" y1="582" x2="846" y2="582" stroke="#0a1c2b" stroke-width="1"/>
+
+    <!-- Row 4: DocStatus -->
+    <rect x="554" y="582" width="292" height="36" rx="7" fill="#081420"/>
+    <rect x="554" y="582" width="292" height="28" fill="#081420"/>
+    <text x="594" y="600" font-size="11" fill="#94a3b8">DocStatus</text>
+    <rect x="668" y="585" width="58" height="13" rx="5" fill="#0c4a6e"/>
+    <text x="697" y="594.5" text-anchor="middle" font-size="7.5" fill="#7dd3fc">Under Review</text>
+    <rect x="730" y="585" width="48" height="13" rx="5" fill="#14532d"/>
+    <text x="754" y="594.5" text-anchor="middle" font-size="7.5" fill="#86efac">Accepted</text>
+    <rect x="782" y="585" width="44" height="13" rx="5" fill="#450a0a"/>
+    <text x="804" y="594.5" text-anchor="middle" font-size="7.5" fill="#fca5a5">Rejected</text>
+    <!-- bottom radius fix -->
+    <rect x="554" y="606" width="292" height="12" rx="7" fill="#081420"/>
+    <rect x="554" y="606" width="292" height="8" fill="#081420"/>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  TABLE: User_Comments  (RIGHT — OUTPUT)                    -->
+  <!--  x=960, y=260, w=270, h=216                               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <g filter="url(#shadow)">
+    <rect x="960" y="265" width="280" height="216" rx="7" fill="#081510" stroke="#059669" stroke-width="1.5" stroke-dasharray="6 3"/>
+    <!-- Dashed border indicates output/derived -->
+    <!-- Header -->
+    <rect x="960" y="265" width="280" height="38" rx="7" fill="url(#hdrOut)"/>
+    <rect x="960" y="289" width="280" height="14" fill="url(#hdrOut)"/>
+    <!-- Icon -->
+    <rect x="970" y="274" width="18" height="14" rx="2" fill="#ffffff" opacity="0.12"/>
+    <line x1="970" y1="279" x2="988" y2="279" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <line x1="970" y1="283" x2="988" y2="283" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+    <text x="994" y="286" font-size="12.5" font-weight="700" fill="#ffffff">User_Comments</text>
+    <!-- Badge (derived) -->
+    <rect x="1183" y="273" width="49" height="16" rx="8" fill="#ffffff" opacity="0.12"/>
+    <text x="1207" y="284" text-anchor="middle" font-size="8" fill="#6ee7b7" font-weight="600">5K (out)</text>
+    <!-- Sep -->
+    <line x1="960" y1="303" x2="1240" y2="303" stroke="#059669" stroke-width="1" opacity="0.5"/>
+
+    <!-- Row 1: InvoiceID FK -->
+    <rect x="960" y="303" width="280" height="28" fill="#040d08"/>
+    <rect x="968" y="310" width="24" height="14" rx="3" fill="#6d28d9"/>
+    <text x="980" y="320" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff">FK</text>
+    <text x="1000" y="321" font-size="11" fill="#a5b4fc">InvoiceID</text>
+    <text x="1234" y="321" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR(15)</text>
+    <line x1="960" y1="331" x2="1240" y2="331" stroke="#0a2010" stroke-width="1"/>
+
+    <!-- Row 2: ContactDate -->
+    <rect x="960" y="331" width="280" height="28" fill="#061008"/>
+    <text x="1000" y="349" font-size="11" fill="#94a3b8">ContactDate</text>
+    <text x="1234" y="349" text-anchor="end" font-size="9.5" fill="#374151">DATE</text>
+    <line x1="960" y1="359" x2="1240" y2="359" stroke="#0a2010" stroke-width="1"/>
+
+    <!-- Row 3: FollowUpNote -->
+    <rect x="960" y="359" width="280" height="28" fill="#040d08"/>
+    <text x="1000" y="377" font-size="11" fill="#94a3b8">FollowUpNote</text>
+    <text x="1234" y="377" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR</text>
+    <line x1="960" y1="387" x2="1240" y2="387" stroke="#0a2010" stroke-width="1"/>
+
+    <!-- Row 4: PromisedDate -->
+    <rect x="960" y="387" width="280" height="28" fill="#061008"/>
+    <text x="1000" y="405" font-size="11" fill="#94a3b8">PromisedDate</text>
+    <text x="1234" y="405" text-anchor="end" font-size="9.5" fill="#374151">DATE</text>
+    <line x1="960" y1="415" x2="1240" y2="415" stroke="#0a2010" stroke-width="1"/>
+
+    <!-- Row 5: CollectorName -->
+    <rect x="960" y="415" width="280" height="36" rx="7" fill="#040d08"/>
+    <rect x="960" y="415" width="280" height="28" fill="#040d08"/>
+    <text x="1000" y="433" font-size="11" fill="#94a3b8">CollectorName</text>
+    <text x="1234" y="433" text-anchor="end" font-size="9.5" fill="#374151">VARCHAR</text>
+    <!-- Collector name pills -->
+    <rect x="1001" y="447" width="34" height="13" rx="5" fill="#064e3b"/>
+    <text x="1018" y="456.5" text-anchor="middle" font-size="7.5" fill="#34d399">Ahmed</text>
+    <rect x="1039" y="447" width="28" height="13" rx="5" fill="#064e3b"/>
+    <text x="1053" y="456.5" text-anchor="middle" font-size="7.5" fill="#34d399">Sara</text>
+    <rect x="1071" y="447" width="30" height="13" rx="5" fill="#064e3b"/>
+    <text x="1086" y="456.5" text-anchor="middle" font-size="7.5" fill="#34d399">Omar</text>
+    <rect x="1105" y="447" width="28" height="13" rx="5" fill="#064e3b"/>
+    <text x="1119" y="456.5" text-anchor="middle" font-size="7.5" fill="#34d399">Nour</text>
+    <rect x="1137" y="447" width="38" height="13" rx="5" fill="#064e3b"/>
+    <text x="1156" y="456.5" text-anchor="middle" font-size="7.5" fill="#34d399">Yasmin</text>
+    <!-- bottom radius fix -->
+    <rect x="960" y="471" width="280" height="10" rx="7" fill="#040d08"/>
+    <rect x="960" y="471" width="280" height="6" fill="#040d08"/>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  LEGEND                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="20" y="648" width="700" height="38" rx="6" fill="#0d0f14" stroke="#1f2937" stroke-width="1"/>
+
+  <!-- PK -->
+  <rect x="34" y="659" width="24" height="14" rx="3" fill="#d97706"/>
+  <text x="46" y="669" text-anchor="middle" font-size="8" font-weight="700" fill="#1a0a00">PK</text>
+  <text x="64" y="670.5" font-size="9.5" fill="#6b7280">Primary Key</text>
+
+  <!-- FK -->
+  <rect x="140" y="659" width="24" height="14" rx="3" fill="#6d28d9"/>
+  <text x="152" y="669" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">FK</text>
+  <text x="170" y="670.5" font-size="9.5" fill="#6b7280">Foreign Key</text>
+
+  <!-- 1:N -->
+  <line x1="248" y1="666" x2="265" y2="666" stroke="#4b5563" stroke-width="1.8" marker-end="url(#arrN)"/>
+  <line x1="250" y1="661" x2="250" y2="671" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="270" y="670.5" font-size="9.5" fill="#6b7280">1 : N Relationship</text>
+
+  <!-- Dashed -->
+  <line x1="376" y1="666" x2="393" y2="666" stroke="#374151" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrDash)"/>
+  <text x="398" y="670.5" font-size="9.5" fill="#6b7280">Derived / Sampled</text>
+
+  <!-- Crow foot -->
+  <line x1="498" y1="660" x2="504" y2="666" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="510" y1="660" x2="504" y2="666" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="504" y1="660" x2="504" y2="666" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="516" y="670.5" font-size="9.5" fill="#6b7280">Many (crow's foot)</text>
+
+  <!-- Source label -->
+  <text x="1360" y="688" text-anchor="end" font-size="8.5" fill="#374151">github.com/Sohila-Khaled-Abbas/AR_Financial_Tracking_System</text>
+</svg>
