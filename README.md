@@ -113,7 +113,7 @@ AR_Financial_Tracking_System/
 │       └── User_Comments.xlsx        # 5,000 simulated follow-up records
 │
 ├── ⚙️  etl/
-│   └── Data_Model_Engine.xlsx        # Power Query ETL workbook (~47 MB)
+│   └── Data_Model_Engine.xlsx        # Power Query ETL workbook (~47 MB, git-ignored)
 │
 ├── 📊 dashboards/                    # Dashboard files (coming soon)
 │
@@ -319,13 +319,16 @@ output    = OUTPUT_DIR   / "User_Comments.xlsx"
 
 ## ⚙️ ETL Engine
 
-**File:** `etl/Data_Model_Engine.xlsx` (~47 MB)
+**File:** `etl/Data_Model_Engine.xlsx` (~47 MB, **git-ignored** — too large for HTTPS push)
 
-The Power Query ETL workbook connects to the raw CSVs and applies the full transformation pipeline:
+> [!NOTE]
+> The ETL workbook is excluded from the repository due to its size. It is a locally-maintained Power Query file that reads from `data/raw/*.parquet`. The full M-language logic for all queries is documented here in the README and in [`docs/datalineage.md`](docs/datalineage.md).
+
+The Power Query ETL workbook connects to the raw **Parquet files** and applies the full transformation pipeline:
 
 | Step | Operation |
 |------|-----------|
-| 1️⃣ | Load all three raw CSV files |
+| 1️⃣ | Load all three raw **Parquet** files (`AR_Invoices_950K`, `Customers_Master`, `Bank_Documents_Tracking`) |
 | 2️⃣ | Clean data types (dates, decimals, IDs) |
 | 3️⃣ | Join `fact_AR_Invoices` ↔ `dim_Customers` |
 | 4️⃣ | Calculate **aging buckets** (0–30 / 31–60 / 61–90 / 90+ days) |

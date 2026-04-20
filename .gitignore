@@ -105,6 +105,10 @@ dmypy.json
 ~$*.pptx
 ~$*.pbix
 
+# Large ETL workbook — excluded because HTTPS git push times out on 47 MB files.
+# Regenerate locally by running the documented Power Query steps.
+etl/Data_Model_Engine.xlsx
+
 # Temporary Office files
 *.tmp
 *.temp
