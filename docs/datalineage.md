@@ -1,7 +1,7 @@
 # Data Lineage — AR Financial Tracking System
 
 > **Document:** `docs/datalineage.md`  
-> **Version:** 1.0 · 2026-04-20  
+> **Version:** 1.1 · 2026-04-20  
 > **Scope:** End-to-end column-level data lineage from synthetic generation through ETL to output layer
 
 ---
@@ -9,11 +9,12 @@
 ## Overview
 
 ```
-Source (Synthetic)          Raw Layer              ETL Layer              Output Layer
-─────────────────           ──────────             ─────────              ────────────
-Faker · NumPy         →   data/raw/*.csv    →   Data_Model_Engine   →   Dashboards
-                                            →   .xlsx (Power Query)  →   User_Comments.xlsx
-                                                                     →   Analytical Model
+Source (Synthetic)          Raw Layer              ETL Layer                    Output Layer
+─────────────────           ──────────             ─────────                    ────────────
+Faker · NumPy         →   data/raw/*.csv    →   Data_Model_Engine.xlsx   →   Dashboards
+                                            →   (Power Query M)            →   User_Comments.xlsx
+Nager Date API        →   Dynamic_Holidays  →   dim_Date                 →   Analytical Model
+(public holidays EG)       (helper query)        (date dimension)
 ```
 
 | Layer | Location | Format | Owner |
@@ -21,6 +22,7 @@ Faker · NumPy         →   data/raw/*.csv    →   Data_Model_Engine   →   D
 | **Generation** | `notebooks/data_generator.ipynb` | In-memory (Pandas) | Python |
 | **Raw** | `data/raw/` | CSV | File system |
 | **ETL / Model** | `etl/Data_Model_Engine.xlsx` | Excel / Power Query | Power Query M |
+| **Holidays API** | Nager Date API (`/api/v3/PublicHolidays/{year}/EG`) | JSON → Power Query | External |
 | **Activity** | `notebooks/user_comments_generator.ipynb` | In-memory → XLSX | Python |
 | **Output** | `data/output/` | XLSX | File system |
 
@@ -154,8 +156,78 @@ Step 9:  Compute AgingBucket        → adds column (conditional)
 Step 10: Flag IsOverdue             → adds boolean column
 Step 11: Join BankDocs ← Invoices   → LEFT JOIN on InvoiceID → +Amount, +PostingDate
 Step 12: Compute SubmissionLag      → adds column
-Step 13: Load to data model         → available for dashboard queries
+Step 13: Fetch Dynamic_Holidays     → API call for EG public holidays (current + prior year)
+Step 14: Build dim_Date             → calendar from PostingDate range; join holidays
+Step 15: Load to data model         → available for dashboard queries
 ```
+
+---
+
+## Stage 2.5 — Power Query: `Dynamic_Holidays`
+
+Fetches Egyptian public holidays from the **Nager Date API** for the current and previous year. Implemented with fault-tolerant `try…otherwise null` to avoid query failures when the API is offline.
+
+### Column Lineage
+
+| Output Column | Source | Transformation | Step |
+|---------------|--------|----------------|------|
+| `Date` | `Nager Date API[date]` | `Table.ExpandRecordColumn` → cast `type date` | Expand + TypeCast |
+| `HolidayName` | `Nager Date API[name]` | `Table.ExpandRecordColumn` → cast `type text` | Expand + TypeCast |
+
+### Query Step Sequence
+
+| # | Step Name | M Operation | Output |
+|---|-----------|-------------|--------|
+| 1 | `CurrentYear` | `Date.Year(DateTime.LocalNow())` | Int — current year |
+| 2 | `YearsList` | `{CurrentYear - 1, CurrentYear}` | List of 2 years |
+| 3 | `GetHolidays` | `(Year) => try Json.Document(Web.Contents(ApiUrl)) otherwise null` | Function |
+| 4 | `FetchData` | `List.Transform(YearsList, each GetHolidays(_))` | List of 2 responses |
+| 5 | `RemoveNulls` | `List.RemoveNulls(FetchData)` | List (no failed calls) |
+| 6 | `CombinedList` | `List.Combine(RemoveNulls)` | Flat list of records |
+| 7 | `ConvertedToTable` | `Table.FromList(CombinedList, ...)` | Table[Column1] |
+| 8 | `ExpandedColumn` | `Table.ExpandRecordColumn(... {"date","name"} ...)` | Table[Date, HolidayName] |
+| 9 | `ChangedType` | `Table.TransformColumnTypes(... type date, type text)` | **Final output** |
+
+> **Load mode:** Connection only (not loaded to data model — consumed by `dim_Date`).
+
+---
+
+## Stage 2.6 — Power Query: `dim_Date`
+
+Builds a **dynamic date dimension** spanning whole calendar years (Jan 1 → Dec 31) derived from `Fact_AR_Invoices[PostingDate]`. Merges `Dynamic_Holidays` to flag public holidays, and applies Egyptian banking weekend logic (Fri = day 5, Sat = day 6).
+
+### Column Lineage
+
+| Output Column | Source | Transformation | Step |
+|---------------|--------|----------------|------|
+| `Date` | `List.Dates(StartDate, DayCount, ...)` | Generated sequence → `type date` | Generate |
+| `Year` | `[Date]` | `Date.Year([Date])` | Derived |
+| `MonthNum` | `[Date]` | `Date.Month([Date])` | Derived |
+| `DayOfWeekNum` | `[Date]` | `Date.DayOfWeek([Date], Day.Sunday)` | Derived (0=Sun … 6=Sat) |
+| `DayName` | `[Date]` | `Date.DayOfWeekName([Date], "en-US")` | Derived |
+| `IsWeekend` | `[DayOfWeekNum]` | `= 5 OR = 6` (Fri/Sat) → `type logical` | Flag |
+| `HolidayName` | `Dynamic_Holidays[HolidayName]` | `LeftOuter Join` on `Date`; `null` → `"Working Day"` or `"Weekend"` | Join + Replace |
+| `IsBankingWorkingDay` | `[IsWeekend]`, `[HolidayName]` | `NOT (IsWeekend OR HolidayName <> null)` → `type logical` | Flag |
+
+### Query Step Sequence
+
+| # | Step Name | M Operation | Output |
+|---|-----------|-------------|--------|
+| 1 | `BufferedDates` | `List.Buffer(Fact_AR_Invoices[PostingDate])` | In-memory date list |
+| 2 | `MinFactDate / MaxFactDate` | `List.Min / List.Max(BufferedDates)` | Boundary dates |
+| 3 | `StartDate / EndDate` | `#date(Year, 1, 1)` / `#date(Year, 12, 31)` | Full-year boundaries |
+| 4 | `DayCount` | `Duration.Days(EndDate - StartDate) + 1` | Integer count |
+| 5 | `SourceList` | `List.Dates(StartDate, DayCount, #duration(1,0,0,0))` | List of dates |
+| 6 | `CalendarBase` | `Table.FromList → TransformColumnTypes(type date)` | Table[Date] |
+| 7 | `InsertYear … InsertDayName` | `Table.AddColumn` × 4 | +Year, +MonthNum, +DayOfWeekNum, +DayName |
+| 8 | `InsertIsWeekend` | `DayOfWeekNum = 5 OR = 6` | +IsWeekend (logical) |
+| 9 | `MergeHolidays` | `Table.NestedJoin(... Dynamic_Holidays ... LeftOuter)` | +nested HolidayData |
+| 10 | `ExpandHolidays` | `Table.ExpandTableColumn(... {"HolidayName"})` | +HolidayName |
+| 11 | `InsertIsWorkingDay` | `NOT (IsWeekend OR HolidayName <> null)` | +IsBankingWorkingDay |
+| 12 | `ReplaceNullHolidays` | `Table.ReplaceValue(null → "Weekend" / "Working Day")` | HolidayName filled |
+| 13 | `#"Changed Type"` | `TransformColumnTypes(HolidayName → type text)` | **Final output** |
+
+> **Load mode:** Loaded to data model. Joins to `fact_AR_Invoices` on `PostingDate = Date`.
 
 ---
 
@@ -201,18 +273,28 @@ seed                  = np.random.seed(42)  [reproducible]
 Faker.company()           ──→  Customers_Master.csv[CustomerName]
                                         │
                                         ▼ JOIN (CustomerID)
-np.random.uniform()       ──→  AR_Invoices_950K.csv[Amount]         ──→  fact_AR_Invoices[Amount]
-np.random.choice(Status)  ──→  AR_Invoices_950K.csv[Status]         ──→  fact_AR_Invoices[Status]
-pd.to_timedelta()         ──→  AR_Invoices_950K.csv[PostingDate]     ──→  fact_AR_Invoices[PostingDate]
+np.random.uniform()       ──→  AR_Invoices_950K.csv[Amount]           ──→  fact_AR_Invoices[Amount]
+np.random.choice(Status)  ──→  AR_Invoices_950K.csv[Status]           ──→  fact_AR_Invoices[Status]
+pd.to_timedelta()         ──→  AR_Invoices_950K.csv[PostingDate]       ──→  fact_AR_Invoices[PostingDate]
                                         │                                          │
-                                        │ (filter: Open/Partial × 0.7)            │ Date.Now() - PostingDate
+                                        │ (filter: Open/Partial × 0.7)            │ PostingDate range
                                         ▼                                          ▼
 np.random.choice(status)  ──→  Bank_Documents_Tracking.csv[DocStatus] ──→  fact_Bank_Documents[DocStatus]
 posting_dates + offset    ──→  Bank_Documents_Tracking.csv[BankSubmissionDate]     │
-                                                                                    ▼
-                                                                    DaysOutstanding (computed)
-                                                                    AgingBucket     (computed)
-                                                                    IsOverdue       (computed)
+                                                                                    │
+                                  Date.Now() - PostingDate ──────────────→  DaysOutstanding (computed)
+                                  conditional   ───────────────────────→  AgingBucket     (computed)
+                                  DaysOutstanding > 60  ──────────────→  IsOverdue       (computed)
+
+Nager Date API (/EG)      ──→  Dynamic_Holidays[Date, HolidayName]
+                                        │
+                                        ▼ LEFT JOIN on Date
+fact_AR_Invoices[PostingDate] ──→  dim_Date[Date]           (boundary source)
+List.Dates(...)            ──→  dim_Date[Date]           (generated sequence)
+Date.Year/Month/DayOfWeek  ──→  dim_Date[Year, MonthNum, DayOfWeekNum, DayName]
+DayOfWeekNum ∈ {5,6}       ──→  dim_Date[IsWeekend]
+Dynamic_Holidays[HolidayName] ──→  dim_Date[HolidayName]
+NOT(IsWeekend OR Holiday)  ──→  dim_Date[IsBankingWorkingDay]
 
 AR_Invoices_950K.csv      ──→  [filter Open/Partial, sample 5K]
   [InvoiceID]             ──→  User_Comments.xlsx[InvoiceID]
@@ -234,12 +316,17 @@ data_generator.ipynb
     │           └──→ etl/Data_Model_Engine.xlsx  ──→  Analytical Model
     │                           ▲
     ├──→ data/raw/AR_Invoices_950K.csv ──┤
-    │           │               ▲
+    │           │               ▲         │
+    │           │               │         └──── [PostingDate boundaries] ──→ dim_Date
     │           └──→ user_comments_generator.ipynb
     │                           │
     │                           └──→ data/output/User_Comments.xlsx
     │
-    └──→ data/raw/Bank_Documents_Tracking.csv ──→ etl/Data_Model_Engine.xlsx
+    ├──→ data/raw/Bank_Documents_Tracking.csv ──→ etl/Data_Model_Engine.xlsx
+    │
+    └── Nager Date API ──→ Dynamic_Holidays (helper, connection only)
+                                  │
+                                  └──→ dim_Date  ──→  etl/Data_Model_Engine.xlsx
 ```
 
 ---
@@ -272,6 +359,28 @@ data_generator.ipynb
 | `InvoiceID` | VARCHAR(15) | No | No (FK) | Must be Open/Partial invoice |
 | `BankSubmissionDate` | DATETIME | No | No | PostingDate + 5d … +30d |
 | `DocStatus` | VARCHAR(15) | No | No | `Under Review` \| `Accepted` \| `Rejected` |
+
+### `Dynamic_Holidays` (Power Query — connection only)
+
+| Column | Type | Nullable | Unique | Range / Values |
+|--------|------|----------|--------|----------------|
+| `Date` | DATE | No | Yes (PK within year) | Egyptian public holiday dates |
+| `HolidayName` | TEXT | No | No | Official Egyptian holiday names (English) |
+
+> Source: `https://date.nager.at/api/v3/PublicHolidays/{year}/EG` — current year & prior year combined.
+
+### `dim_Date` (Power Query — loaded to data model)
+
+| Column | Type | Nullable | Unique | Range / Values |
+|--------|------|----------|--------|----------------|
+| `Date` | DATE | No | Yes (PK) | Jan 1 of min fact year → Dec 31 of max fact year |
+| `Year` | INT64 | No | No | e.g. `2024`, `2025`, `2026` |
+| `MonthNum` | INT64 | No | No | 1 … 12 |
+| `DayOfWeekNum` | INT64 | No | No | 0 (Sun) … 6 (Sat) |
+| `DayName` | TEXT | No | No | `"Sunday"` … `"Saturday"` (en-US) |
+| `IsWeekend` | LOGICAL | No | No | `true` if DayOfWeekNum ∈ {5, 6} (Fri/Sat) |
+| `HolidayName` | TEXT | No | No | Holiday name \| `"Weekend"` \| `"Working Day"` |
+| `IsBankingWorkingDay` | LOGICAL | No | No | `false` if weekend or public holiday; else `true` |
 
 ### `User_Comments.xlsx`
 

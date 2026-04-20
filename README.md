@@ -28,6 +28,7 @@
 - [🗄️ Data Model — Star Schema](#%EF%B8%8F-data-model--star-schema)
 - [📓 Notebooks](#-notebooks)
 - [⚙️ ETL Engine](#%EF%B8%8F-etl-engine)
+- [🗓️ Power Query Queries — dim\_Date & Dynamic\_Holidays](#%EF%B8%8F-power-query-queries--dim_date--dynamic_holidays)
 - [⚡ Performance](#-performance)
 - [🚀 Getting Started](#-getting-started)
 - [📈 Key Metrics & KPIs](#-key-metrics--kpis)
@@ -80,7 +81,7 @@ The pipeline flows through four stages: **data generation → raw storage → ET
 </div>
 
 > [!TIP]
-> High-resolution PNG (4140×2100 px). Open [`docs/diagram.svg`](docs/diagram.svg) for a fully zoomable vector version.
+> High-resolution PNG (4140×2580 px). Open [`docs/diagram.svg`](docs/diagram.svg) for a fully zoomable vector version.
 
 ---
 
@@ -132,38 +133,48 @@ AR_Financial_Tracking_System/
 ## 🗄️ Data Model — Star Schema
 
 ```
-                    ┌─────────────────────────┐
-                    │   dim_Customers          │
-                    │─────────────────────────│
-                    │  CustomerID  (PK)        │
-                    │  CustomerName            │
-                    │  PaymentTerms            │
-                    │  (30 / 60 / 90 / 120 d) │
-                    └────────────┬────────────┘
-                                 │ 1
-                                 │
-                                 │ N
-          ┌──────────────────────▼───────────────────────┐
-          │              fact_AR_Invoices                 │
-          │──────────────────────────────────────────────│
-          │  InvoiceID    (PK)   INV-0000001 … INV-0950000│
-          │  CustomerID   (FK)                            │
-          │  PostingDate         2024-04-20 → 2026-04-20  │
-          │  Amount              $100 – $150,000          │
-          │  Status              Open · Partial · Cleared │
-          └───────────────┬──────────────────────────────┘
-                          │ 1
-                          │
-                          │ N (70% of Open/Partial)
-          ┌───────────────▼──────────────────────────────┐
-          │          fact_Bank_Documents                  │
-          │──────────────────────────────────────────────│
-          │  DocID          (PK)   DOC-000001 …           │
-          │  InvoiceID      (FK)                          │
-          │  BankSubmissionDate                           │
-          │  DocStatus      Under Review · Accepted ·     │
-          │                 Rejected (60/30/10%)          │
-          └──────────────────────────────────────────────┘
+  ┌──────────────────────────┐      ┌───────────────────────────────┐
+  │      dim_Customers        │      │          dim_Date              │
+  │──────────────────────────│      │───────────────────────────────│
+  │  CustomerID  (PK)         │      │  Date            (PK)          │
+  │  CustomerName             │      │  Year                          │
+  │  PaymentTerms             │      │  MonthNum                      │
+  │  (30 / 60 / 90 / 120 d)  │      │  DayOfWeekNum                  │
+  └────────────┬─────────────┘      │  DayName                       │
+               │ 1                  │  IsWeekend                     │
+               │                    │  HolidayName                   │
+               │ N                  │  IsBankingWorkingDay           │
+  ┌────────────▼──────────────────────────────────────────────────┐  │
+  │                    fact_AR_Invoices                            │  │
+  │───────────────────────────────────────────────────────────────│  │
+  │  InvoiceID    (PK)   INV-0000001 … INV-0950000                 │──┘
+  │  CustomerID   (FK → dim_Customers)                             │  PostingDate
+  │  PostingDate  (FK → dim_Date)                                  │
+  │  Amount              $100 – $150,000                           │
+  │  Status              Open · Partial · Cleared                  │
+  └───────────────┬───────────────────────────────────────────────┘
+                  │ 1
+                  │
+                  │ N (70% of Open/Partial)
+  ┌───────────────▼───────────────────────────────────────────────┐
+  │                  fact_Bank_Documents                           │
+  │───────────────────────────────────────────────────────────────│
+  │  DocID          (PK)   DOC-000001 …                            │
+  │  InvoiceID      (FK → fact_AR_Invoices)                        │
+  │  BankSubmissionDate                                            │
+  │  DocStatus      Under Review · Accepted · Rejected (60/30/10%) │
+  └───────────────────────────────────────────────────────────────┘
+
+  (Helper query — not loaded to data model)
+  ┌──────────────────────────┐
+  │     Dynamic_Holidays      │
+  │──────────────────────────│
+  │  Date       (date)        │
+  │  HolidayName (text)       │
+  └────────────┬─────────────┘
+               │ LEFT JOIN on Date
+               ▼
+           dim_Date
 ```
 
 ### Schema Statistics
@@ -173,6 +184,8 @@ AR_Financial_Tracking_System/
 | `fact_AR_Invoices` | 950,000 | ~58 MB | Core fact table |
 | `dim_Customers` | 10,000 | ~295 KB | Customer dimension |
 | `fact_Bank_Documents` | ~399,000 | ~24 MB | Bank tracking fact |
+| `dim_Date` | ~730+ | — | Date dimension (Power Query) |
+| `Dynamic_Holidays` | varies | — | API-sourced EG public holidays (helper) |
 | `User_Comments` (output) | 5,000 | — | Follow-up simulation |
 
 ### Invoice Status Distribution
@@ -317,10 +330,122 @@ The Power Query ETL workbook connects to the raw CSVs and applies the full trans
 | 5️⃣ | Compute **Days Outstanding** per invoice |
 | 6️⃣ | Flag overdue invoices for collections |
 | 7️⃣ | Join bank document status |
-| 8️⃣ | Output analytical model for dashboard consumption |
+| 8️⃣ | **Fetch Egyptian public holidays** via `Dynamic_Holidays` (Nager Date API) |
+| 9️⃣ | **Build `dim_Date`** — calendar table with weekend & banking working day flags |
+| 🔟 | Output analytical model for dashboard consumption |
 
 > [!TIP]
 > To refresh: open `Data_Model_Engine.xlsx` → **Data tab** → **Refresh All**. Ensure the raw CSVs are present in `data/raw/` first.
+
+---
+
+## 🗓️ Power Query Queries — dim\_Date & Dynamic\_Holidays
+
+Two Power Query M-language queries extend the ETL workbook with a **fully dynamic date dimension** and **live-fetched Egyptian public holidays**.
+
+### `Dynamic_Holidays` — Live Holiday API Feed
+
+Fetches Egyptian public holidays for the current and prior year from the [Nager Date API](https://date.nager.at) (`/api/v3/PublicHolidays/{year}/EG`). The query is fault-tolerant — if the API is unreachable, affected years return `null` and are silently dropped.
+
+**Output columns:** `Date` (date) · `HolidayName` (text)
+
+```powerquery
+let
+    // 1. Define the date range (current year + previous year for historical data coverage)
+    CurrentYear = Date.Year(DateTime.LocalNow()),
+    YearsList = {CurrentYear - 1, CurrentYear},
+
+    // 2. Build a dynamic function to call the API for each year separately
+    //    Country code "EG" fetches Egypt-specific public holidays
+    GetHolidays = (Year as number) =>
+        let
+            ApiUrl = "https://date.nager.at/api/v3/PublicHolidays/" & Text.From(Year) & "/EG",
+            // Use try...otherwise to prevent query failure if the API is unreachable
+            Source = try Json.Document(Web.Contents(ApiUrl)) otherwise null
+        in
+            Source,
+
+    // 3. Execute the function against the list of years
+    FetchData = List.Transform(YearsList, each GetHolidays(_)),
+
+    // 4. Remove any null responses (failed requests)
+    RemoveNulls = List.RemoveNulls(FetchData),
+
+    // 5. Combine the fetched lists into one
+    CombinedList = List.Combine(RemoveNulls),
+
+    // 6. Convert the combined list to a readable table
+    ConvertedToTable = Table.FromList(CombinedList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+
+    // 7. Extract only the date and holiday name columns; discard unnecessary data
+    ExpandedColumn = Table.ExpandRecordColumn(ConvertedToTable, "Column1", {"date", "name"}, {"Date", "HolidayName"}),
+
+    // 8. Set correct data types to ensure successful Join with Dim_Calendar
+    ChangedType = Table.TransformColumnTypes(ExpandedColumn,{{"Date", type date}, {"HolidayName", type text}})
+in
+    ChangedType
+```
+
+---
+
+### `dim_Date` — Dynamic Calendar Dimension
+
+Builds a **date dimension table** whose boundaries are derived dynamically from `Fact_AR_Invoices[PostingDate]` — no hardcoded dates. Integrates `Dynamic_Holidays` via a Left Outer Join to populate `HolidayName`, then derives `IsBankingWorkingDay` (excludes weekends **and** public holidays). Egyptian weekend convention (Friday = day 5, Saturday = day 6) is applied.
+
+**Output columns:** `Date` · `Year` · `MonthNum` · `DayOfWeekNum` · `DayName` · `IsWeekend` · `HolidayName` · `IsBankingWorkingDay`
+
+```powerquery
+let
+    // 1. Performance Optimization: Buffer the date column to prevent multiple disk scans
+    BufferedDates = List.Buffer(Fact_AR_Invoices[PostingDate]),
+
+    // 2. Extract boundaries safely
+    MinFactDate = List.Min(BufferedDates),
+    MaxFactDate = List.Max(BufferedDates),
+
+    // 3. Logic Correction: Force boundaries to full years for DAX compatibility
+    StartDate = #date(Date.Year(MinFactDate), 1, 1),
+    EndDate   = #date(Date.Year(MaxFactDate), 12, 31),
+    DayCount  = Duration.Days(Duration.From(EndDate - StartDate)) + 1,
+
+    // 4. Generate Base Calendar
+    SourceList    = List.Dates(StartDate, DayCount, #duration(1, 0, 0, 0)),
+    TableFromList = Table.FromList(SourceList, Splitter.SplitByNothing(), {"Date"}, null, ExtraValues.Error),
+    CalendarBase  = Table.TransformColumnTypes(TableFromList,{{"Date", type date}}),
+
+    // 5. Build Dimensions
+    InsertYear         = Table.AddColumn(CalendarBase,    "Year",         each Date.Year([Date]),                       Int64.Type),
+    InsertMonthNum     = Table.AddColumn(InsertYear,      "MonthNum",     each Date.Month([Date]),                      Int64.Type),
+    InsertDayOfWeekNum = Table.AddColumn(InsertMonthNum,  "DayOfWeekNum", each Date.DayOfWeek([Date], Day.Sunday),      Int64.Type),
+    InsertDayName      = Table.AddColumn(InsertDayOfWeekNum, "DayName",   each Date.DayOfWeekName([Date], "en-US"),     type text),
+
+    // 6. Static Weekend Logic (Friday = 5, Saturday = 6 in Egyptian banking calendar)
+    InsertIsWeekend = Table.AddColumn(InsertDayName, "IsWeekend", each
+        if [DayOfWeekNum] = 5 or [DayOfWeekNum] = 6 then true else false, type logical),
+
+    // 7. Dynamic Holiday Integration via Left Outer Join
+    MergeHolidays  = Table.NestedJoin(InsertIsWeekend, {"Date"}, Dynamic_Holidays, {"Date"}, "HolidayData", JoinKind.LeftOuter),
+    ExpandHolidays = Table.ExpandTableColumn(MergeHolidays, "HolidayData", {"HolidayName"}, {"HolidayName"}),
+
+    // 8. Final Banking Working Day Calculation
+    InsertIsWorkingDay = Table.AddColumn(ExpandHolidays, "IsBankingWorkingDay", each
+        if [IsWeekend] = true or [HolidayName] <> null then false else true, type logical),
+
+    // 9. Replace nulls in HolidayName with descriptive labels
+    ReplaceNullHolidays = Table.ReplaceValue(
+        InsertIsWorkingDay,
+        null,
+        each if [IsWeekend] = true then "Weekend" else "Working Day",
+        Replacer.ReplaceValue,
+        {"HolidayName"}
+    ),
+    #"Changed Type" = Table.TransformColumnTypes(ReplaceNullHolidays,{{"HolidayName", type text}})
+in
+    #"Changed Type"
+```
+
+> [!NOTE]
+> `Dynamic_Holidays` is a **connection-only** helper query — it is not loaded to the data model. `dim_Date` loads to the model and joins to `fact_AR_Invoices` on `PostingDate`.
 
 ---
 
