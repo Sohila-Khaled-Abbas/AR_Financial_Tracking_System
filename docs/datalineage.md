@@ -1,7 +1,7 @@
 # Data Lineage — AR Financial Tracking System
 
 > **Document:** `docs/datalineage.md`  
-> **Version:** 1.2 · 2026-04-20  
+> **Version:** 1.3 · 2026-04-20  
 > **Scope:** End-to-end column-level data lineage from synthetic generation through ETL to output layer
 
 ---
@@ -14,7 +14,10 @@ Source (Synthetic)          Raw Layer (Parquet)    ETL Layer                    
 Faker · NumPy         →   data/raw/*.parquet  →   Data_Model_Engine.xlsx   →   Dashboards
                             (pyarrow engine)    →   (Power Query M)            →   User_Comments.xlsx
 Nager Date API        →   Dynamic_Holidays     →   dim_Date                 →   Analytical Model
-(public holidays EG)       (helper query)           (date dimension)
+(scripts/daily_updates.py) (Parquet · pyarrow)      (date dimension)
+
+Daily Delta (CDC)     →   AR_Invoices_950K     (Upsert · dedup · overwrite)
+(scripts/daily_updates.py) .parquet master file
 ```
 
 | Layer | Location | Format | Owner |
@@ -22,7 +25,8 @@ Nager Date API        →   Dynamic_Holidays     →   dim_Date                 
 | **Generation** | `notebooks/data_generator.ipynb` | In-memory (Pandas) | Python |
 | **Raw (Parquet)** | `data/raw/` | Parquet (pyarrow) | File system |
 | **ETL / Model** | `etl/Data_Model_Engine.xlsx` | Excel / Power Query | Power Query M |
-| **Holidays API** | Nager Date API (`/api/v3/PublicHolidays/{year}/EG`) | JSON → Power Query | External |
+| **Holidays API** | Nager Date API (`/api/v3/PublicHolidays/{year}/EG`) | JSON → Parquet | External / Python |
+| **Daily Updates** | `scripts/daily_updates.py` | Python → Parquet | Python |
 | **Activity** | `notebooks/user_comments_generator.ipynb` | In-memory → XLSX | Python |
 | **Output** | `data/output/` | XLSX | File system |
 
@@ -30,7 +34,7 @@ Nager Date API        →   Dynamic_Holidays     →   dim_Date                 
 
 ## Stage 1 — Data Generation (`data_generator.ipynb`)
 
-### 1.1 dim_Customers → `Customers_Master.csv`
+### 1.1 dim_Customers → `Customers_Master.parquet`
 
 | Column | Source | Generation Method | Notes |
 |--------|--------|-------------------|-------|
@@ -42,7 +46,7 @@ Nager Date API        →   Dynamic_Holidays     →   dim_Date                 
 
 ---
 
-### 1.2 fact_AR_Invoices → `AR_Invoices_950K.csv`
+### 1.2 fact_AR_Invoices → `AR_Invoices_950K.parquet`
 
 | Column | Source | Generation Method | Notes |
 |--------|--------|-------------------|-------|
@@ -57,7 +61,7 @@ Nager Date API        →   Dynamic_Holidays     →   dim_Date                 
 
 ---
 
-### 1.3 fact_Bank_Documents → `Bank_Documents_Tracking.csv`
+### 1.3 fact_Bank_Documents → `Bank_Documents_Tracking.parquet`
 
 | Column | Source | Generation Method | Notes |
 |--------|--------|-------------------|-------|
@@ -84,7 +88,7 @@ Nager Date API        →   Dynamic_Holidays     →   dim_Date                 
 
 ## Stage 2 — ETL Transformation (`etl/Data_Model_Engine.xlsx`)
 
-Powered by **Power Query M-Language**. Connects directly to `data/raw/` CSVs.
+Powered by **Power Query M-Language**. Connects directly to `data/raw/` Parquet files.
 
 ### 2.1 Load Queries
 
@@ -237,7 +241,7 @@ Builds a **dynamic date dimension** spanning whole calendar years (Jan 1 → Dec
 
 | Source | Column(s) Used | Filter Applied |
 |--------|---------------|----------------|
-| `data/raw/AR_Invoices_950K.csv` | `InvoiceID`, `Status` | `Status IN ('Open', 'Partial')` → ~570,313 rows |
+| `data/raw/AR_Invoices_950K.parquet` | `InvoiceID`, `Status` | `Status IN ('Open', 'Partial')` → ~570,313 rows |
 
 ---
 
@@ -245,7 +249,7 @@ Builds a **dynamic date dimension** spanning whole calendar years (Jan 1 → Dec
 
 | Output Column | Source | Generation Method | Notes |
 |---------------|--------|-------------------|-------|
-| `InvoiceID` | `AR_Invoices_950K.csv[InvoiceID]` | `np.random.choice(open_invoices, 5000, replace=False)` | Sampled without replacement |
+| `InvoiceID` | `AR_Invoices_950K.parquet[InvoiceID]` | `np.random.choice(open_invoices, 5000, replace=False)` | Sampled without replacement |
 | `ContactDate` | System | `datetime.today().date()` | Run date |
 | `FollowUpNote` | Constant list | `np.random.choice(follow_up_templates)` | 8 templates, uniform |
 | `PromisedDate` | `ContactDate` | `ContactDate + timedelta(days=randint(1,14))` | 1–14 days ahead |
@@ -267,26 +271,73 @@ seed                  = np.random.seed(42)  [reproducible]
 
 ---
 
+## Stage 4 — Daily Updates (`scripts/daily_updates.py`)
+
+A standalone Python script that runs **outside** the notebook pipeline on a daily schedule (or on demand). It performs two independent tasks:
+
+### 4.1 `update_holidays()` — Live Holiday Refresh
+
+Fetches Egyptian public holidays from the **Nager Date API** and persists them as a Parquet file, replacing the Power Query-only approach with a Python-owned artefact.
+
+| Output Column | Source | Transformation | Notes |
+|---------------|--------|----------------|-------|
+| `Date` | `Nager Date API[date]` | `pd.to_datetime(...).dt.date` | Cast to `date` (no time) |
+| `HolidayName` | `Nager Date API[name]` | Column rename | Official EN holiday name |
+
+**Output:** `data/raw/Dynamic_Holidays.parquet` — varies (~20–25 rows per year × 2 years)
+
+**Fault tolerance:** `requests.exceptions.RequestException` is caught per year; only successful years are written. If both years fail, no file is written and a warning is printed.
+
+---
+
+### 4.2 `apply_cdc()` — Change Data Capture Upsert
+
+Simulates a daily **SAP extraction report** and applies CDC (upsert) logic to the master invoice Parquet file.
+
+#### `generate_daily_delta()` — Daily Delta Simulation
+
+| Operation | Description | Volume |
+|-----------|-------------|--------|
+| Status update | Sample 500 `Open` invoices → set `Status = 'Cleared'` | 500 rows updated |
+| New invoices | Generate 500 fresh `INV-NEW-{7-digit}` invoices with today's date | 500 rows inserted |
+| Deduplication | `drop_duplicates(subset='InvoiceID', keep='last')` applied to delta | Ensures clean delta |
+
+#### `apply_cdc()` — Upsert Logic
+
+```
+1. Load master   →  pd.read_parquet(AR_Invoices_950K.parquet)
+2. Concat        →  pd.concat([master_df, daily_df], ignore_index=True)
+3. Dedup/Upsert  →  drop_duplicates(subset='InvoiceID', keep='last')
+                    ↑ updates existing rows (daily overrides master)
+                    ↑ inserts new rows (not in master → kept)
+4. Overwrite     →  final_df.to_parquet(MASTER_FILE, engine='pyarrow')
+```
+
+**Net effect per daily run:** ~500 invoices updated (Open → Cleared) + ~500 new invoices inserted → master grows by ~500 rows net.
+
+---
+
 ## Full Column-Level Lineage Map
 
 ```
-Faker.company()           ──→  Customers_Master.csv[CustomerName]
+Faker.company()           ──→  Customers_Master.parquet[CustomerName]
                                         │
                                         ▼ JOIN (CustomerID)
-np.random.uniform()       ──→  AR_Invoices_950K.csv[Amount]           ──→  fact_AR_Invoices[Amount]
-np.random.choice(Status)  ──→  AR_Invoices_950K.csv[Status]           ──→  fact_AR_Invoices[Status]
-pd.to_timedelta()         ──→  AR_Invoices_950K.csv[PostingDate]       ──→  fact_AR_Invoices[PostingDate]
-                                        │                                          │
-                                        │ (filter: Open/Partial × 0.7)            │ PostingDate range
-                                        ▼                                          ▼
-np.random.choice(status)  ──→  Bank_Documents_Tracking.csv[DocStatus] ──→  fact_Bank_Documents[DocStatus]
-posting_dates + offset    ──→  Bank_Documents_Tracking.csv[BankSubmissionDate]     │
-                                                                                    │
+np.random.uniform()       ──→  AR_Invoices_950K.parquet[Amount]           ──→  fact_AR_Invoices[Amount]
+np.random.choice(Status)  ──→  AR_Invoices_950K.parquet[Status]           ──→  fact_AR_Invoices[Status]
+pd.to_timedelta()         ──→  AR_Invoices_950K.parquet[PostingDate]       ──→  fact_AR_Invoices[PostingDate]
+                                        │                                             │
+                                        │ (filter: Open/Partial × 0.7)               │ PostingDate range
+                                        ▼                                             ▼
+np.random.choice(status)  ──→  Bank_Documents_Tracking.parquet[DocStatus] ──→  fact_Bank_Documents[DocStatus]
+posting_dates + offset    ──→  Bank_Documents_Tracking.parquet[BankSubmissionDate]   │
+                                                                                      │
                                   Date.Now() - PostingDate ──────────────→  DaysOutstanding (computed)
                                   conditional   ───────────────────────→  AgingBucket     (computed)
                                   DaysOutstanding > 60  ──────────────→  IsOverdue       (computed)
 
-Nager Date API (/EG)      ──→  Dynamic_Holidays[Date, HolidayName]
+Nager Date API (/EG)      ──→  Dynamic_Holidays.parquet[Date, HolidayName]   (scripts/daily_updates.py)
+  also Power Query        ──→  Dynamic_Holidays helper query                  (etl/Data_Model_Engine.xlsx)
                                         │
                                         ▼ LEFT JOIN on Date
 fact_AR_Invoices[PostingDate] ──→  dim_Date[Date]           (boundary source)
@@ -296,12 +347,17 @@ DayOfWeekNum ∈ {5,6}       ──→  dim_Date[IsWeekend]
 Dynamic_Holidays[HolidayName] ──→  dim_Date[HolidayName]
 NOT(IsWeekend OR Holiday)  ──→  dim_Date[IsBankingWorkingDay]
 
-AR_Invoices_950K.csv      ──→  [filter Open/Partial, sample 5K]
+AR_Invoices_950K.parquet  ──→  [filter Open/Partial, sample 5K]
   [InvoiceID]             ──→  User_Comments.xlsx[InvoiceID]
 datetime.today()          ──→  User_Comments.xlsx[ContactDate]
 templates list            ──→  User_Comments.xlsx[FollowUpNote]
 ContactDate + randint()   ──→  User_Comments.xlsx[PromisedDate]
 collectors list           ──→  User_Comments.xlsx[CollectorName]
+
+── CDC (daily_updates.py) ────────────────────────────────────────────────────
+AR_Invoices_950K.parquet  ──→  sample 500 Open  ──→  Status='Cleared'  (update)
+INV-NEW-{random}           ──→  500 new invoices ──→  Status='Open'     (insert)
+combined + dedup           ──→  AR_Invoices_950K.parquet                (overwrite)
 ```
 
 ---
@@ -311,29 +367,38 @@ collectors list           ──→  User_Comments.xlsx[CollectorName]
 ```
 data_generator.ipynb
     │
-    ├──→ data/raw/Customers_Master.csv
+    ├──→ data/raw/Customers_Master.parquet
     │           │
     │           └──→ etl/Data_Model_Engine.xlsx  ──→  Analytical Model
     │                           ▲
-    ├──→ data/raw/AR_Invoices_950K.csv ──┤
+    ├──→ data/raw/AR_Invoices_950K.parquet ──┤
     │           │               ▲         │
     │           │               │         └──── [PostingDate boundaries] ──→ dim_Date
-    │           └──→ user_comments_generator.ipynb
+    │           │
+    │           ├──→ user_comments_generator.ipynb
+    │           │               │
+    │           │               └──→ data/output/User_Comments.xlsx
+    │           │
+    │           └──→ scripts/daily_updates.py  (CDC Upsert)
     │                           │
-    │                           └──→ data/output/User_Comments.xlsx
+    │                           └──→ data/raw/AR_Invoices_950K.parquet  (overwrite)
     │
-    ├──→ data/raw/Bank_Documents_Tracking.csv ──→ etl/Data_Model_Engine.xlsx
+    ├──→ data/raw/Bank_Documents_Tracking.parquet ──→ etl/Data_Model_Engine.xlsx
     │
-    └── Nager Date API ──→ Dynamic_Holidays (helper, connection only)
+    └── Nager Date API ──→ scripts/daily_updates.py
                                   │
-                                  └──→ dim_Date  ──→  etl/Data_Model_Engine.xlsx
+                                  ├──→ data/raw/Dynamic_Holidays.parquet
+                                  │
+                                  └── Power Query ──→ Dynamic_Holidays (helper)
+                                                               │
+                                                               └──→ dim_Date  ──→  etl/
 ```
 
 ---
 
 ## Data Contracts
 
-### `Customers_Master.csv`
+### `Customers_Master.parquet`
 
 | Column | Type | Nullable | Unique | Range / Values |
 |--------|------|----------|--------|----------------|
@@ -341,17 +406,17 @@ data_generator.ipynb
 | `CustomerName` | VARCHAR(255) | No | No | Faker company names |
 | `PaymentTerms` | INT | No | No | `{30, 60, 90, 120}` |
 
-### `AR_Invoices_950K.csv`
+### `AR_Invoices_950K.parquet` (master — updated by CDC)
 
 | Column | Type | Nullable | Unique | Range / Values |
 |--------|------|----------|--------|----------------|
-| `InvoiceID` | VARCHAR(15) | No | Yes (PK) | `INV-0000001` … `INV-0950000` |
+| `InvoiceID` | VARCHAR(15) | No | Yes (PK) | `INV-0000001` … `INV-0950000`; `INV-NEW-{7-digit}` for CDC inserts |
 | `CustomerID` | VARCHAR(10) | No | No (FK) | Must exist in Customers_Master |
 | `PostingDate` | DATETIME | No | No | today−730d … today |
 | `Amount` | FLOAT | No | No | 100.00 … 150,000.00 |
 | `Status` | VARCHAR(10) | No | No | `Open` \| `Partial` \| `Cleared` |
 
-### `Bank_Documents_Tracking.csv`
+### `Bank_Documents_Tracking.parquet`
 
 | Column | Type | Nullable | Unique | Range / Values |
 |--------|------|----------|--------|----------------|
@@ -359,6 +424,15 @@ data_generator.ipynb
 | `InvoiceID` | VARCHAR(15) | No | No (FK) | Must be Open/Partial invoice |
 | `BankSubmissionDate` | DATETIME | No | No | PostingDate + 5d … +30d |
 | `DocStatus` | VARCHAR(15) | No | No | `Under Review` \| `Accepted` \| `Rejected` |
+
+### `Dynamic_Holidays.parquet` (Python-owned — written by `daily_updates.py`)
+
+| Column | Type | Nullable | Unique | Range / Values |
+|--------|------|----------|--------|----------------|
+| `Date` | DATE | No | Yes (PK within year) | Egyptian public holiday dates |
+| `HolidayName` | TEXT | No | No | Official Egyptian holiday names (English) |
+
+> Source: `https://date.nager.at/api/v3/PublicHolidays/{year}/EG` — current year & prior year. Fault-tolerant: failed years are silently skipped.
 
 ### `Dynamic_Holidays` (Power Query — connection only)
 
@@ -396,15 +470,19 @@ data_generator.ipynb
 
 ## Refresh & Re-run Order
 
-1. **Run** `notebooks/data_generator.ipynb` — regenerates all three raw CSVs
+1. **Run** `notebooks/data_generator.ipynb` — regenerates all three raw Parquet files
 2. **Refresh** `etl/Data_Model_Engine.xlsx` → Data → Refresh All
 3. **Run** `notebooks/user_comments_generator.ipynb` — regenerates `User_Comments.xlsx`
+4. **Run** `scripts/daily_updates.py` — (daily / on-demand) fetches holidays from API and applies CDC upsert to master invoice file
 
 > [!IMPORTANT]
-> Step 1 must complete before Steps 2 and 3. Steps 2 and 3 are independent of each other.
+> Step 1 must complete before Steps 2, 3, and 4. Steps 2, 3, and 4 are independent of each other.
 
 > [!NOTE]
 > `data/raw/` is excluded from version control (`.gitignore`). Always regenerate locally before running the ETL. Generation takes ~10.76 seconds on a standard laptop.
+
+> [!TIP]
+> Step 4 (`daily_updates.py`) is designed to be re-run daily. Each run appends ~500 new invoices and resolves ~500 Open → Cleared updates via CDC upsert. It is safe to run multiple times — deduplication ensures idempotency for existing `InvoiceID`s.
 
 ---
 

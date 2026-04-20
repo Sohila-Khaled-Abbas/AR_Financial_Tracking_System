@@ -28,6 +28,7 @@
 - [📁 Repository Structure](#-repository-structure)
 - [🗄️ Data Model — Star Schema](#%EF%B8%8F-data-model--star-schema)
 - [📓 Notebooks](#-notebooks)
+- [🔧 Scripts — Daily Updates & CDC](#-scripts--utility--daily-pipeline-scripts)
 - [⚙️ ETL Engine](#%EF%B8%8F-etl-engine)
 - [🗓️ Power Query Queries — dim\_Date & Dynamic\_Holidays](#%EF%B8%8F-power-query-queries--dim_date--dynamic_holidays)
 - [⚡ Performance](#-performance)
@@ -49,9 +50,10 @@ The pipeline generates **950,000 invoices** across **10,000 customers** with rea
 
 | Layer | What Happens |
 |-------|-------------|
-| 🏭 **Data Generation** | Vectorized synthetic dataset creation — 950K invoices, 10K customers, ~399K bank documents |
+| 🏗️ **Data Generation** | Vectorized synthetic dataset creation — 950K invoices, 10K customers, ~399K bank documents |
 | 💾 **Parquet Storage** | All raw tables exported as Parquet via `pyarrow` — ~77 % smaller than CSV, schema-preserving |
 | 🔄 **ETL Processing** | Power Query cleans, joins, and enriches raw Parquet files into an analytical data model |
+| 📅 **Daily Updates (CDC)** | `daily_updates.py` fetches live EG holidays from API and applies Change Data Capture upserts to the master Parquet file |
 | 🎭 **Activity Simulation** | Realistic AR collection follow-up notes, collector assignments, and promise-to-pay dates |
 | 📊 **Star Schema** | Fact + Dimension tables structured for BI consumption |
 
@@ -59,7 +61,7 @@ The pipeline generates **950,000 invoices** across **10,000 customers** with rea
 
 ## 🏗️ Architecture & Data Flow
 
-The pipeline flows through four stages: **data generation → raw storage → ETL transformation → output layer**.
+The pipeline flows through five stages: **data generation → raw storage → ETL transformation → output layer → daily CDC updates**.
 
 > See the [full architecture diagram](#-architecture-diagram) below for a visual overview including the Star Schema ERD.
 
@@ -100,14 +102,14 @@ AR_Financial_Tracking_System/
 │
 ├── 📓 notebooks/
 │   ├── data_generator.ipynb          # Stage 1: Synthetic data pipeline (950K records)
-│   ├── user_comments_generator.ipynb # Stage 2: AR follow-up activity simulation
-│   └── paths.py                      # Shared path configuration (OS-agnostic)
+│   └── user_comments_generator.ipynb # Stage 2: AR follow-up activity simulation
 │
 ├── 📂 data/
 │   ├── raw/                          # Generated Parquet files (git-ignored)
 │   │   ├── AR_Invoices_950K.parquet      # Fact table · 950,000 rows · ~13 MB 🔽 was ~58 MB CSV
 │   │   ├── Customers_Master.parquet      # Customer dimension · 10,000 rows · ~0.2 MB
-│   │   └── Bank_Documents_Tracking.parquet # Bank submission tracking · ~399K rows · ~5 MB
+│   │   ├── Bank_Documents_Tracking.parquet # Bank submission tracking · ~399K rows · ~5 MB
+│   │   └── Dynamic_Holidays.parquet      # Egyptian public holidays · written by daily_updates.py
 │   ├── mappings/                     # Reference & dimension lookup tables
 │   └── output/                       # Notebook exports (auto-created)
 │       └── User_Comments.xlsx        # 5,000 simulated follow-up records
@@ -121,6 +123,10 @@ AR_Financial_Tracking_System/
 │   ├── diagram.svg                   # Pipeline & ERD architecture diagram (vector)
 │   ├── diagram.png                   # High-resolution PNG (4140×2580 px, 3× scale)
 │   └── datalineage.md               # End-to-end column-level data lineage
+│
+├── 🔧 scripts/
+│   ├── daily_updates.py              # Stage 5: Holidays API fetch + CDC upsert (run daily)
+│   └── paths.py                      # Shared path configuration (OS-agnostic)
 │
 ├── 📄 README.md
 ├── 📄 .gitignore
@@ -303,9 +309,42 @@ Simulates realistic **AR collection team activity** by generating follow-up note
 
 ---
 
-### 🔧 `paths.py` — Shared Path Configuration
+### 🔧 `scripts/` — Utility & Daily Pipeline Scripts
 
-Eliminates hardcoded Windows backslash paths across all notebooks. Import once, use everywhere.
+#### `daily_updates.py` — Stage 5: Holidays API + CDC
+
+A standalone script designed to be **run daily** (or on-demand). It keeps the master Parquet file and the holidays reference fresh without re-running the full data generator.
+
+**Function 1: `update_holidays()`**
+
+Fetches Egyptian public holidays from the [Nager Date API](https://date.nager.at) for the current and prior year. Saves the result as `data/raw/Dynamic_Holidays.parquet`.
+
+```python
+from scripts.daily_updates import update_holidays
+update_holidays()  # → saves Dynamic_Holidays.parquet
+```
+
+**Function 2: `apply_cdc(daily_df)`**
+
+Applies **Change Data Capture** upsert logic to the master invoice file. Uses `concat + drop_duplicates(keep='last')` — the daily delta always wins on existing keys, new keys are appended.
+
+```
+CDC Logic per run:
+  ├─ 500 Open invoices  → Status updated to 'Cleared'
+  ├─ 500 new INV-NEW-*  → Inserted as Status='Open'
+  └─ Master: dedup(keep='last') → overwrite Parquet
+```
+
+**Net effect:** ~500 rows updated + ~500 rows inserted → master grows by ~500 rows/day net.
+
+```bash
+# Run from the project root
+python scripts/daily_updates.py
+```
+
+#### `paths.py` — Shared Path Configuration
+
+Eliminates hardcoded Windows backslash paths across all notebooks and scripts. Import once, use everywhere.
 
 ```python
 from paths import RAW_DATA_DIR, OUTPUT_DIR, MAPPINGS_DIR
@@ -475,7 +514,7 @@ The data generation pipeline is built for **high throughput** using vectorized N
 
 ```bash
 python --version      # 3.8+ required (tested on 3.13.1)
-pip install pandas numpy faker openpyxl pyarrow
+pip install pandas numpy faker openpyxl pyarrow requests
 ```
 
 ### Step 1 — Clone
@@ -504,7 +543,17 @@ Run `notebooks/user_comments_generator.ipynb`.
 
 Output: `data/output/User_Comments.xlsx`
 
-### Step 5 — Explore Dashboards
+### Step 5 — Run Daily Updates (CDC)
+
+```bash
+python scripts/daily_updates.py
+```
+
+This does two things in sequence:
+- Fetches live Egyptian public holidays → saves `data/raw/Dynamic_Holidays.parquet`
+- Applies CDC upsert → updates 500 Open invoices to Cleared, inserts 500 new invoices into the master Parquet file
+
+### Step 6 — Explore Dashboards
 
 Open files in the `dashboards/` folder (coming soon).
 
